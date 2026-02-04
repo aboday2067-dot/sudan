@@ -4,6 +4,9 @@ import json
 from collections import defaultdict
 from typing import List, Callable, Union
 from datetime import datetime
+from functools import lru_cache
+import gc
+
 # Local imports
 import os
 from .util import function_to_json, debug_print, merge_chunk, pretty_print_messages
@@ -33,6 +36,16 @@ import inspect
 from constant import MC_MODE, FN_CALL, API_BASE_URL, NOT_SUPPORT_SENDER, ADD_USER, NON_FN_CALL
 from autoagent.fn_call_converter import convert_tools_to_description, convert_non_fncall_messages_to_fncall_messages, SYSTEM_PROMPT_SUFFIX_TEMPLATE, convert_fn_messages_to_non_fn_messages, interleave_user_into_messages
 from litellm.types.utils import Message as litellmMessage
+
+# Performance optimization: Cache for function to JSON conversion
+_function_json_cache = {}
+
+def _get_cached_function_json(func):
+    """Cache function to JSON conversion for better performance"""
+    func_id = id(func)
+    if func_id not in _function_json_cache:
+        _function_json_cache[func_id] = function_to_json(func)
+    return _function_json_cache[func_id]
 # litellm.set_verbose=True
 # client = AsyncOpenAI()
 def should_retry_error(exception):
@@ -55,8 +68,15 @@ def should_retry_error(exception):
 __CTX_VARS_NAME__ = "context_variables"
 logger = LoggerManager.get_logger()
 
-def adapt_tools_for_gemini(tools):
-    """为 Gemini 模型适配工具定义，确保所有 OBJECT 类型参数都有非空的 properties"""
+@lru_cache(maxsize=128)
+def adapt_tools_for_gemini(tools_tuple):
+    """
+    Adapt tool definitions for Gemini model, ensure all OBJECT type parameters have non-empty properties
+    Performance optimized with LRU cache
+    """
+    # Convert tuple back to list for processing
+    tools = list(tools_tuple) if tools_tuple else None
+    
     if tools is None:
         return None
         
@@ -64,11 +84,11 @@ def adapt_tools_for_gemini(tools):
     for tool in tools:
         adapted_tool = copy.deepcopy(tool)
         
-        # 检查参数
+        # Check parameters
         if "parameters" in adapted_tool["function"]:
             params = adapted_tool["function"]["parameters"]
             
-            # 处理顶层参数
+            # Handle top-level parameters
             if params.get("type") == "object":
                 if "properties" not in params or not params["properties"]:
                     params["properties"] = {
@@ -78,7 +98,7 @@ def adapt_tools_for_gemini(tools):
                         }
                     }
             
-            # 处理嵌套参数
+            # Handle nested parameters
             if "properties" in params:
                 for prop_name, prop in params["properties"].items():
                     if isinstance(prop, dict) and prop.get("type") == "object":
@@ -106,12 +126,6 @@ class MetaChain:
             self.logger = MetaChainLogger(log_path=log_path)
         # if self.logger.log_path is None: self.logger.info("[Warning] Not specific log path, so log will not be saved", "...", title="Log Path", color="light_cyan3")
         # else: self.logger.info("Log file is saved to", self.logger.log_path, "...", title="Log Path", color="light_cyan3")
-    # @retry(
-    #     stop=stop_after_attempt(4),
-    #     wait=wait_exponential(multiplier=1, min=4, max=60),
-    #     retry=should_retry_error,
-    #     before_sleep=lambda retry_state: print(f"Retrying... (attempt {retry_state.attempt_number})")
-    # )
     def get_chat_completion(
         self,
         agent: Agent,
@@ -132,9 +146,10 @@ class MetaChain:
             history = examples + history
         
         messages = [{"role": "system", "content": instructions}] + history
-        # debug_print(debug, "Getting chat completion for...:", messages)
         
-        tools = [function_to_json(f) for f in agent.functions]
+        # Performance optimization: Use cached function JSON conversion
+        tools = [_get_cached_function_json(f) for f in agent.functions]
+        
         # hide context_variables from model
         for tool in tools:
             params = tool["function"]["parameters"]
@@ -144,9 +159,11 @@ class MetaChain:
         create_model = model_override or agent.model
 
         if "gemini" in create_model.lower():
-            tools = adapt_tools_for_gemini(tools)
+            # Convert to tuple for caching
+            tools_tuple = tuple(json.dumps(t, sort_keys=True) for t in tools) if tools else None
+            tools = adapt_tools_for_gemini(tools_tuple)
+            
         if FN_CALL:
-            # create_model = model_override or agent.model
             assert litellm.supports_function_calling(model = create_model) == True, f"Model {create_model} does not support function calling, please set `FN_CALL=False` to use non-function calling mode"
             create_params = {
                 "model": create_model,
@@ -172,7 +189,6 @@ class MetaChain:
                 create_params["parallel_tool_calls"] = agent.parallel_tool_calls
             completion_response = completion(**create_params)
         else: 
-            # create_model = model_override or agent.model
             assert agent.tool_choice == "required", f"Non-function calling mode MUST use tool_choice = 'required' rather than {agent.tool_choice}"
             last_content = messages[-1]["content"]
             tools_description = convert_tools_to_description(tools)
@@ -190,7 +206,6 @@ class MetaChain:
             if NON_FN_CALL:
                 messages = convert_fn_messages_to_non_fn_messages(messages)
             if ADD_USER and messages[-1]["role"] != "user":
-                # messages.append({"role": "user", "content": "Please think twice and take the next action according to your previous actions and observations."})
                 messages = interleave_user_into_messages(messages)
             create_params = {
                 "model": create_model,
@@ -435,15 +450,10 @@ class MetaChain:
             )
             message: Message = completion.choices[0].message
             message.sender = active_agent.name
-            # debug_print(debug, "Received completion:", message.model_dump_json(indent=4), log_path=log_path, title="Received Completion", color="blue")
             self.logger.pretty_print_messages(message)
             history.append(
                 json.loads(message.model_dump_json())
             )  # to avoid OpenAI types (?)
-
-            # if not message.tool_calls or not execute_tools:
-            #     self.logger.info("Ending turn.", title="End Turn", color="red")
-            #     break
 
             if enter_agent.tool_choice != "required":
                 if (not message.tool_calls and active_agent.name == enter_agent.name) or not execute_tools:
@@ -470,10 +480,6 @@ class MetaChain:
                     self.logger.info("Ending turn with no tool calls.", title="End Turn", color="red")
                     break
 
-            # if (message.tool_calls and message.tool_calls[0].function.name == "case_resolved") or not execute_tools:
-            #     debug_print(debug, "Ending turn.", log_path=log_path, title="End Turn", color="red")
-            #     break
-
             # handle function calls, updating context_variables, and switching agents
             if message.tool_calls:
                 partial_response = self.handle_tool_calls(
@@ -485,6 +491,10 @@ class MetaChain:
             context_variables.update(partial_response.context_variables)
             if partial_response.agent:
                 active_agent = partial_response.agent
+            
+            # Performance optimization: Periodic garbage collection for long-running tasks
+            if len(history) % 50 == 0:
+                gc.collect()
 
         return Response(
             messages=history[init_len:],

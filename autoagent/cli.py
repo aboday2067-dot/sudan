@@ -1,48 +1,49 @@
+# Standard library imports - always loaded
 import click
 import importlib
-from autoagent import MetaChain
-from autoagent.util import debug_print
 import asyncio
-from constant import DOCKER_WORKPLACE_NAME
-from autoagent.io_utils import read_yaml_file, get_md5_hash_bytext, read_file
-from autoagent.environment.utils import setup_metachain
-from autoagent.types import Response
-from autoagent import MetaChain
-from autoagent.util import ask_text, single_select_menu, print_markdown, debug_print, UserCompleter
-from prompt_toolkit import PromptSession
-from prompt_toolkit.completion import Completer, Completion
-from prompt_toolkit.formatted_text import HTML
-from prompt_toolkit.styles import Style
-from rich.progress import Progress, SpinnerColumn, TextColumn
 import json
-import argparse
-from datetime import datetime
-from autoagent.agents.meta_agent import tool_editor, agent_editor
-from autoagent.tools.meta.edit_tools import list_tools
-from autoagent.tools.meta.edit_agents import list_agents
-from loop_utils.font_page import MC_LOGO, version_table, NOTES, GOODBYE_LOGO
-from rich.live import Live
-from autoagent.environment.docker_env import DockerEnv, DockerConfig, check_container_ports
-from autoagent.environment.local_env import LocalEnv
-from autoagent.environment.browser_env import BrowserEnv
-from autoagent.environment.markdown_browser import RequestsMarkdownBrowser
-from evaluation.utils import update_progress, check_port_available, run_evaluation, clean_msg
 import os
 import os.path as osp
-from autoagent.agents import get_system_triage_agent
-from autoagent.logger import LoggerManager, MetaChainLogger 
-from rich.console import Console
-from rich.markdown import Markdown
-from rich.table import Table
-from rich.columns import Columns
-from rich.text import Text
-from rich.panel import Panel
 import re
-from autoagent.cli_utils.metachain_meta_agent import meta_agent
-from autoagent.cli_utils.metachain_meta_workflow import meta_workflow
-from autoagent.cli_utils.file_select import select_and_copy_files
-from evaluation.utils import update_progress, check_port_available, run_evaluation, clean_msg
-from constant import COMPLETION_MODEL
+
+# Performance optimization: Lazy imports - load only when needed
+# This significantly reduces startup time and memory usage
+
+def _lazy_import_heavy_deps():
+    """Lazy import heavy dependencies only when needed"""
+    global MetaChain, Response, PromptSession, HTML, Style
+    global Progress, SpinnerColumn, TextColumn, Console, Text, Panel
+    global DockerEnv, DockerConfig, check_container_ports, LocalEnv
+    global BrowserEnv, RequestsMarkdownBrowser, LoggerManager, MetaChainLogger
+    global get_system_triage_agent, meta_agent, meta_workflow, select_and_copy_files
+    global UserCompleter, single_select_menu, debug_print
+    global MC_LOGO, version_table, NOTES, GOODBYE_LOGO, COMPLETION_MODEL, DOCKER_WORKPLACE_NAME
+    global setup_metachain, check_port_available
+    
+    from autoagent import MetaChain
+    from autoagent.types import Response
+    from autoagent.util import single_select_menu, debug_print, UserCompleter
+    from prompt_toolkit import PromptSession
+    from prompt_toolkit.formatted_text import HTML
+    from prompt_toolkit.styles import Style
+    from rich.progress import Progress, SpinnerColumn, TextColumn
+    from rich.console import Console
+    from rich.text import Text
+    from rich.panel import Panel
+    from autoagent.environment.docker_env import DockerEnv, DockerConfig, check_container_ports
+    from autoagent.environment.local_env import LocalEnv
+    from autoagent.environment.browser_env import BrowserEnv
+    from autoagent.environment.markdown_browser import RequestsMarkdownBrowser
+    from autoagent.logger import LoggerManager, MetaChainLogger
+    from autoagent.agents import get_system_triage_agent
+    from autoagent.cli_utils.metachain_meta_agent import meta_agent
+    from autoagent.cli_utils.metachain_meta_workflow import meta_workflow
+    from autoagent.cli_utils.file_select import select_and_copy_files
+    from loop_utils.font_page import MC_LOGO, version_table, NOTES, GOODBYE_LOGO
+    from constant import COMPLETION_MODEL, DOCKER_WORKPLACE_NAME
+    from autoagent.environment.utils import setup_metachain
+    from evaluation.utils import check_port_available
 @click.group()
 def cli():
     """The command line interface for autoagent"""
@@ -64,6 +65,9 @@ def agent(model: str, agent_func: str, query: str, context_variables):
     Usage:
         mc agent --model=gpt-4o-2024-08-06 --agent_func=get_weather_agent --query="What is the weather in Tokyo?" city=Tokyo unit=C timestamp=2024-01-01
     """ 
+    # Lazy import heavy dependencies
+    _lazy_import_heavy_deps()
+    
     context_storage = {}
     for arg in context_variables:
         if '=' in arg:
@@ -103,20 +107,23 @@ async def async_workflow(workflow_name: str, system_input: str):
     return result
 
 def clear_screen():
+    _lazy_import_heavy_deps()
     console = Console()
     console.print("[bold green]Coming soon...[/bold green]")
     print('\033[u\033[J\033[?25h', end='')  # Restore cursor and clear everything after it, show cursor
+
 def get_config(container_name, port, test_pull_name="main", git_clone=False):
+    # Lazy import dependencies
+    _lazy_import_heavy_deps()
+    import filelock
+    
     container_name = container_name
     
     port_info = check_container_ports(container_name)
     if port_info:
         port = port_info[0]
     else:
-        # while not check_port_available(port):
-        #     port += 1
-        # 使用文件锁来确保端口分配的原子性
-        import filelock
+        # Use file lock to ensure atomic port allocation
         lock_file = os.path.join(os.getcwd(), ".port_lock")
         lock = filelock.FileLock(lock_file)
         
@@ -125,7 +132,7 @@ def get_config(container_name, port, test_pull_name="main", git_clone=False):
             while not check_port_available(port):
                 port += 1
                 print(f'{port} is not available, trying {port+1}')
-            # 立即标记该端口为已使用
+            # Mark the port as used immediately
             with open(os.path.join(os.getcwd(), f".port_{port}"), 'w') as f:
                 f.write(container_name)
     local_root = os.path.join(os.getcwd(), f"workspace_meta_showcase", f"showcase_{container_name}")
@@ -140,12 +147,15 @@ def get_config(container_name, port, test_pull_name="main", git_clone=False):
         git_clone=git_clone
     )
     return docker_config
-def create_environment(docker_config: DockerConfig):
+def create_environment(docker_config):
     """
     1. create the code environment
     2. create the web environment
     3. create the file environment
+    Performance optimized with lazy loading
     """
+    _lazy_import_heavy_deps()
+    
     code_env = DockerEnv(docker_config)
     code_env.init_container()
     
@@ -154,12 +164,15 @@ def create_environment(docker_config: DockerConfig):
     
     return code_env, web_env, file_env
 
-def create_environment_local(docker_config: DockerConfig):
+def create_environment_local(docker_config):
     """
     1. create the code environment
     2. create the web environment
     3. create the file environment
+    Performance optimized with lazy loading
     """
+    _lazy_import_heavy_deps()
+    
     code_env = LocalEnv(docker_config)
 
     web_env = BrowserEnv(browsergym_eval_env = None, local_root=docker_config.local_root, workplace_name=docker_config.workplace_name)
@@ -168,6 +181,7 @@ def create_environment_local(docker_config: DockerConfig):
     return code_env, web_env, file_env
 
 def update_guidance(context_variables): 
+    _lazy_import_heavy_deps()
     console = Console()
 
     # print the logo
@@ -176,7 +190,7 @@ def update_guidance(context_variables):
     console.print(version_table)
     console.print(Panel(NOTES,title="Important Notes", expand=True))
 
-@cli.command(name='main')  # 修改这里，使用连字符
+@cli.command(name='main')  # Use hyphen for CLI command
 @click.option('--container_name', default='auto_agent', help='the function to get the agent')
 @click.option('--port', default=12347, help='the port to run the container')
 @click.option('--test_pull_name', default='autoagent_mirror', help='the name of the test pull')
@@ -185,13 +199,17 @@ def update_guidance(context_variables):
 def main(container_name: str, port: int, test_pull_name: str, git_clone: bool, local_env: bool):
     """
     Run deep research with a given model, container name, port
+    Performance optimized with lazy loading
     """ 
+    # Lazy import heavy dependencies ONLY when command is executed
+    _lazy_import_heavy_deps()
+    
     model = COMPLETION_MODEL
     print('\033[s\033[?25l', end='')  # Save cursor position and hide cursor
     with Progress(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
-        transient=True  # 这会让进度条完成后消失
+        transient=True  # Makes progress bar disappear after completion
     ) as progress:
         task = progress.add_task("[cyan]Initializing...", total=None)
         
@@ -236,6 +254,9 @@ def main(container_name: str, port: int, test_pull_name: str, git_clone: bool, l
 
 
 def user_mode(model: str, context_variables: dict, debug: bool = True): 
+    # Lazy import needed only for this mode
+    _lazy_import_heavy_deps()
+    
     logger = LoggerManager.get_logger()
     console = Console()
     system_triage_agent = get_system_triage_agent(model)
@@ -250,7 +271,7 @@ def user_mode(model: str, context_variables: dict, debug: bool = True):
         'bottom-toolbar': 'bg:#333333 #ffffff',
     })
 
-    # 创建会话
+    # Create session
     session = PromptSession(
         completer=UserCompleter(agents.keys()),
         complete_while_typing=True,
@@ -259,14 +280,11 @@ def user_mode(model: str, context_variables: dict, debug: bool = True):
     client = MetaChain(log_path=logger)
     upload_infos = []
     while True: 
-        # query = ask_text("Tell me what you want to do:")
         query = session.prompt(
             'Tell me what you want to do (type "exit" to quit): ',
             bottom_toolbar=HTML('<b>Prompt:</b> Enter <b>@</b> to mention Agents')
         )
         if query.strip().lower() == 'exit':
-            # logger.info('User mode completed. See you next time! :waving_hand:', color='green', title='EXIT')
-            
             logo_text = "User mode completed. See you next time! :waving_hand:"
             console.print(Panel(logo_text, style="bold salmon1", expand=True))
             break
@@ -274,10 +292,8 @@ def user_mode(model: str, context_variables: dict, debug: bool = True):
         console.print(f"[bold green]Your request: {query}[/bold green]", end=" ")
         for word in words:
             if word.startswith('@') and word[1:] in agents.keys():
-                # print(f"[bold magenta]{word}[bold magenta]", end=' ') 
                 agent = agents[word.replace('@', '')]
             else:
-                # print(word, end=' ')
                 pass
         print()
         
@@ -303,7 +319,7 @@ def user_mode(model: str, context_variables: dict, debug: bool = True):
             console.print(f"[bold green][bold magenta]@{agent_name}[/bold magenta] has finished with the response:\n[/bold green] [bold blue]{model_answer}[/bold blue]")
             agent = response.agent
         elif agent == "select": 
-            code_env: DockerEnv = context_variables["code_env"]
+            code_env = context_variables["code_env"]
             local_workplace = code_env.local_workplace
             docker_workplace = code_env.docker_workplace
             files_dir = os.path.join(local_workplace, "files")
@@ -314,20 +330,24 @@ def user_mode(model: str, context_variables: dict, debug: bool = True):
         else: 
             console.print(f"[bold red]Unknown agent: {agent}[/bold red]")
 
-@cli.command(name='deep-research')  # 修改这里，使用连字符
+@cli.command(name='deep-research')  # Use hyphen for CLI command
 @click.option('--container_name', default='deepresearch', help='the function to get the agent')
 @click.option('--port', default=12346, help='the port to run the container')
 @click.option('--local_env', default=False, help='whether to use local environment')
 def deep_research(container_name: str, port: int, local_env: bool):
     """
     Run deep research with a given model, container name, port
+    Performance optimized with lazy loading
     """ 
+    # Lazy import heavy dependencies ONLY when command is executed
+    _lazy_import_heavy_deps()
+    
     model = COMPLETION_MODEL
     print('\033[s\033[?25l', end='')  # Save cursor position and hide cursor
     with Progress(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
-        transient=True  # 这会让进度条完成后消失
+        transient=True  # Makes progress bar disappear after completion
     ) as progress:
         task = progress.add_task("[cyan]Initializing...", total=None)
         
@@ -366,7 +386,7 @@ def deep_research(container_name: str, port: int, local_env: bool):
         'bottom-toolbar': 'bg:#333333 #ffffff',
     })
 
-    # 创建会话
+    # Create session
     session = PromptSession(
         completer=UserCompleter(agents.keys()),
         complete_while_typing=True,
@@ -374,14 +394,11 @@ def deep_research(container_name: str, port: int, local_env: bool):
     )
     client = MetaChain(log_path=logger)
     while True: 
-        # query = ask_text("Tell me what you want to do:")
         query = session.prompt(
             'Tell me what you want to do (type "exit" to quit): ',
             bottom_toolbar=HTML('<b>Prompt:</b> Enter <b>@</b> to mention Agents')
         )
         if query.strip().lower() == 'exit':
-            # logger.info('User mode completed.  See you next time! :waving_hand:', color='green', title='EXIT')
-            
             logo_text = "See you next time! :waving_hand:"
             console.print(Panel(logo_text, style="bold salmon1", expand=True))
             break
@@ -389,10 +406,8 @@ def deep_research(container_name: str, port: int, local_env: bool):
         console.print(f"[bold green]Your request: {query}[/bold green]", end=" ")
         for word in words:
             if word.startswith('@') and word[1:] in agents.keys():
-                # print(f"[bold magenta]{word}[bold magenta]", end=' ') 
                 agent = agents[word.replace('@', '')]
             else:
-                # print(word, end=' ')
                 pass
         print()
         
@@ -416,7 +431,7 @@ def deep_research(container_name: str, port: int, local_env: bool):
             console.print(f"[bold green][bold magenta]@{agent_name}[/bold magenta] has finished with the response:\n[/bold green] [bold blue]{model_answer}[/bold blue]")
             agent = response.agent
         elif agent == "select": 
-            code_env: DockerEnv = context_variables["code_env"]
+            code_env = context_variables["code_env"]
             local_workplace = code_env.local_workplace
             files_dir = os.path.join(local_workplace, "files")
             os.makedirs(files_dir, exist_ok=True)
