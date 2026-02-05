@@ -114,22 +114,24 @@ HTML = """
         .ai { background: #f0f0f0; color: #333; align-self: flex-start; }
         
         .input-area {
-            padding: 12px 15px;
+            padding: 10px;
             background: #f8f9fa;
             border-top: 1px solid #ddd;
             display: flex;
+            flex-direction: row;
             gap: 8px;
-            align-items: center;
+            align-items: stretch;
         }
         
         #userInput {
             flex: 1;
-            padding: 8px 15px;
+            padding: 10px 15px;
             border: 2px solid #ddd;
             border-radius: 20px;
-            font-size: 0.9em;
+            font-size: 0.95em;
             outline: none;
             transition: border 0.3s;
+            min-width: 0;
         }
         
         #userInput:focus { border-color: #667eea; }
@@ -138,13 +140,14 @@ HTML = """
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
-            padding: 8px 20px;
+            padding: 10px 20px;
             border-radius: 20px;
             cursor: pointer;
             font-weight: bold;
-            font-size: 0.9em;
+            font-size: 0.95em;
             transition: transform 0.2s;
             white-space: nowrap;
+            flex-shrink: 0;
         }
         
         #sendBtn:hover { transform: scale(1.05); }
@@ -154,19 +157,36 @@ HTML = """
             background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
             color: white;
             border: none;
-            padding: 8px 15px;
+            padding: 10px 18px;
             border-radius: 20px;
             cursor: pointer;
             font-weight: bold;
-            font-size: 0.85em;
+            font-size: 0.9em;
             transition: all 0.3s;
             white-space: nowrap;
             box-shadow: 0 2px 10px rgba(245, 87, 108, 0.3);
+            flex-shrink: 0;
+            order: -1;
         }
         
         .pro-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 15px rgba(245, 87, 108, 0.5);
+        }
+        
+        @media (max-width: 480px) {
+            .input-area {
+                padding: 8px;
+                gap: 6px;
+            }
+            #userInput {
+                padding: 8px 12px;
+                font-size: 0.9em;
+            }
+            #sendBtn, .pro-btn {
+                padding: 8px 15px;
+                font-size: 0.85em;
+            }
         }
         
         .loading {
@@ -220,7 +240,6 @@ HTML = """
             </div>
             
             <div class="input-area">
-                <button class="pro-btn" onclick="switchToPro()">🚀 PRO</button>
                 <input 
                     type="text" 
                     id="userInput" 
@@ -229,6 +248,7 @@ HTML = """
                     autofocus
                 >
                 <button id="sendBtn" onclick="sendMessage()">إرسال</button>
+                <button class="pro-btn" onclick="switchToPro()">PRO 🚀</button>
             </div>
         </div>
         
