@@ -5,6 +5,10 @@ from flask import Flask, render_template_string, request, jsonify, session
 from autoagent import MetaChain, Agent
 import os
 import secrets
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(16)
