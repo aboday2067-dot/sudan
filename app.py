@@ -44,6 +44,9 @@ HTML = """
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>زيزو - Zizo AI Assistant</title>
     <meta name="description" content="زيزو - مساعد ذكاء اصطناعي متقدم">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -262,14 +265,20 @@ HTML = """
     </div>
 
     <script>
+        console.log('✅ زيزو جاهز! Zizo Ready!');
         let conversationHistory = [];
         
         async function sendMessage() {
+            console.log('📤 إرسال رسالة... Sending message...');
             const input = document.getElementById('userInput');
             const message = input.value.trim();
             
-            if (!message) return;
+            if (!message) {
+                console.log('⚠️ رسالة فارغة Empty message');
+                return;
+            }
             
+            console.log('📝 الرسالة:', message);
             addMessage(message, 'user');
             input.value = '';
             input.disabled = true;
@@ -287,6 +296,7 @@ HTML = """
                 });
                 
                 const data = await response.json();
+                console.log('✅ استلام رد Received response');
                 
                 if (data.response) {
                     addMessage(data.response, 'ai');
@@ -296,6 +306,7 @@ HTML = """
                 }
                 
             } catch (error) {
+                console.error('❌ خطأ Error:', error);
                 addMessage('❌ خطأ في الاتصال. تأكد من الإنترنت.', 'ai');
             } finally {
                 input.disabled = false;
@@ -316,16 +327,30 @@ HTML = """
         
         // Auto-focus on load
         document.getElementById('userInput').focus();
+        console.log('✅ تم التركيز على حقل الإدخال Input focused');
         
         // التبديل إلى زيزو برو
         function switchToPro() {
+            console.log('🚀 محاولة التبديل إلى PRO...');
             if (confirm('🚀 هل تريد التبديل إلى زيزو برو؟\n\nستحصل على:\n✅ إنشاء الصور (DALL-E 3)\n✅ إنشاء الفيديوهات\n✅ برمجة متقدمة\n✅ دمج APIs\n✅ نشر التطبيقات\n✅ اكتشاف الأخطاء\n✅ نماذج AI مخصصة')) {
+                console.log('✅ تم الموافقة Confirmed');
                 addMessage('🚀 جاري التبديل إلى زيزو برو...', 'ai');
                 setTimeout(() => {
                     window.location.href = '/pro';
                 }, 1000);
+            } else {
+                console.log('❌ تم الإلغاء Cancelled');
             }
         }
+        
+        // Test buttons on load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('📱 DOM جاهز Ready');
+            const sendBtn = document.getElementById('sendBtn');
+            const proBtn = document.querySelector('.pro-btn');
+            console.log('زر الإرسال Send button:', sendBtn ? '✅' : '❌');
+            console.log('زر PRO button:', proBtn ? '✅' : '❌');
+        });
     </script>
 </body>
 </html>
