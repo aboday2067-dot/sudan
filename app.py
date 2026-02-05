@@ -114,19 +114,20 @@ HTML = """
         .ai { background: #f0f0f0; color: #333; align-self: flex-start; }
         
         .input-area {
-            padding: 20px;
+            padding: 12px 15px;
             background: #f8f9fa;
             border-top: 1px solid #ddd;
             display: flex;
-            gap: 10px;
+            gap: 8px;
+            align-items: center;
         }
         
         #userInput {
             flex: 1;
-            padding: 12px 18px;
+            padding: 8px 15px;
             border: 2px solid #ddd;
-            border-radius: 25px;
-            font-size: 1em;
+            border-radius: 20px;
+            font-size: 0.9em;
             outline: none;
             transition: border 0.3s;
         }
@@ -137,15 +138,36 @@ HTML = """
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
-            padding: 12px 30px;
-            border-radius: 25px;
+            padding: 8px 20px;
+            border-radius: 20px;
             cursor: pointer;
             font-weight: bold;
+            font-size: 0.9em;
             transition: transform 0.2s;
+            white-space: nowrap;
         }
         
         #sendBtn:hover { transform: scale(1.05); }
         #sendBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .pro-btn {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.85em;
+            transition: all 0.3s;
+            white-space: nowrap;
+            box-shadow: 0 2px 10px rgba(245, 87, 108, 0.3);
+        }
+        
+        .pro-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(245, 87, 108, 0.5);
+        }
         
         .loading {
             display: none;
@@ -198,6 +220,7 @@ HTML = """
             </div>
             
             <div class="input-area">
+                <button class="pro-btn" onclick="switchToPro()">🚀 PRO</button>
                 <input 
                     type="text" 
                     id="userInput" 
@@ -273,6 +296,16 @@ HTML = """
         
         // Auto-focus on load
         document.getElementById('userInput').focus();
+        
+        // التبديل إلى زيزو برو
+        function switchToPro() {
+            if (confirm('🚀 هل تريد التبديل إلى زيزو برو؟\n\nستحصل على:\n✅ إنشاء الصور (DALL-E 3)\n✅ إنشاء الفيديوهات\n✅ برمجة متقدمة\n✅ دمج APIs\n✅ نشر التطبيقات\n✅ اكتشاف الأخطاء\n✅ نماذج AI مخصصة')) {
+                addMessage('🚀 جاري التبديل إلى زيزو برو...', 'ai');
+                setTimeout(() => {
+                    window.location.href = '/pro';
+                }, 1000);
+            }
+        }
     </script>
 </body>
 </html>
@@ -282,6 +315,95 @@ HTML = """
 def index():
     """الصفحة الرئيسية"""
     return render_template_string(HTML, model=AI_MODEL)
+
+@app.route('/pro')
+def pro():
+    """صفحة زيزو برو - إعادة توجيه"""
+    return """
+    <!DOCTYPE html>
+    <html lang="ar" dir="rtl">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>التبديل إلى زيزو برو</title>
+        <style>
+            body {
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+                min-height: 100vh;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                color: white;
+                text-align: center;
+                padding: 20px;
+            }
+            .container {
+                background: rgba(255,255,255,0.1);
+                backdrop-filter: blur(10px);
+                padding: 40px;
+                border-radius: 20px;
+                max-width: 600px;
+            }
+            h1 { font-size: 2.5em; margin-bottom: 20px; }
+            p { font-size: 1.2em; margin: 15px 0; line-height: 1.6; }
+            .features {
+                text-align: right;
+                margin: 30px 0;
+                font-size: 1.1em;
+            }
+            .features div {
+                margin: 10px 0;
+                padding: 10px;
+                background: rgba(255,255,255,0.1);
+                border-radius: 10px;
+            }
+            .btn {
+                background: white;
+                color: #f5576c;
+                border: none;
+                padding: 15px 40px;
+                border-radius: 30px;
+                font-size: 1.1em;
+                font-weight: bold;
+                cursor: pointer;
+                margin: 10px;
+                transition: transform 0.3s;
+            }
+            .btn:hover { transform: scale(1.05); }
+            .back-btn {
+                background: rgba(255,255,255,0.2);
+                color: white;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>🚀 زيزو برو</h1>
+            <p>النسخة المتقدمة مع قدرات عبقرية!</p>
+            
+            <div class="features">
+                <div>🎨 إنشاء الصور بجودة HD</div>
+                <div>🎬 إنشاء الفيديوهات من النص</div>
+                <div>💻 برمجة مواقع وتطبيقات كاملة</div>
+                <div>🔌 دمج APIs والخدمات</div>
+                <div>🚀 نشر على السيرفرات</div>
+                <div>🐛 اكتشاف وإصلاح الأخطاء</div>
+                <div>🤖 إنشاء نماذج AI مخصصة</div>
+            </div>
+            
+            <p><strong>للتبديل إلى زيزو برو:</strong></p>
+            <p>يرجى تشغيل الأمر التالي:</p>
+            <p style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; font-family: monospace;">
+                pkill -f "python.*app.py" && cd /home/user/webapp && ./start_zizo_pro.sh
+            </p>
+            
+            <button class="btn back-btn" onclick="window.location.href='/'">← العودة لزيزو الأساسي</button>
+        </div>
+    </body>
+    </html>
+    """
+
 
 @app.route('/chat', methods=['POST'])
 def chat():
