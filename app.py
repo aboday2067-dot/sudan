@@ -151,9 +151,13 @@ HTML = """
             transition: transform 0.2s;
             white-space: nowrap;
             flex-shrink: 0;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
         }
         
         #sendBtn:hover { transform: scale(1.05); }
+        #sendBtn:active { transform: scale(0.95); }
         #sendBtn:disabled { opacity: 0.5; cursor: not-allowed; }
         
         .pro-btn {
@@ -170,11 +174,18 @@ HTML = """
             box-shadow: 0 2px 10px rgba(245, 87, 108, 0.3);
             flex-shrink: 0;
             order: -1;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
         }
         
         .pro-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 15px rgba(245, 87, 108, 0.5);
+        }
+        
+        .pro-btn:active {
+            transform: translateY(0);
         }
         
         @media (max-width: 480px) {
@@ -247,11 +258,10 @@ HTML = """
                     type="text" 
                     id="userInput" 
                     placeholder="اكتب رسالتك هنا..."
-                    onkeypress="if(event.key==='Enter') sendMessage()"
-                    autofocus
+                    onkeydown="if(event.key==='Enter'){event.preventDefault();sendMessage();}"
                 >
-                <button id="sendBtn" onclick="sendMessage()">إرسال</button>
-                <button class="pro-btn" onclick="switchToPro()">PRO 🚀</button>
+                <button type="button" id="sendBtn" style="touch-action: manipulation;">إرسال</button>
+                <button type="button" class="pro-btn" style="touch-action: manipulation;">PRO 🚀</button>
             </div>
         </div>
         
@@ -268,13 +278,69 @@ HTML = """
         console.log('✅ زيزو جاهز! Zizo Ready!');
         let conversationHistory = [];
         
+        // ربط الأحداث مباشرة بعد تحميل DOM
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('📱 DOM جاهز Ready');
+            
+            const sendBtn = document.getElementById('sendBtn');
+            const proBtn = document.querySelector('.pro-btn');
+            const input = document.getElementById('userInput');
+            
+            console.log('زر الإرسال:', sendBtn ? '✅ موجود' : '❌ غير موجود');
+            console.log('زر PRO:', proBtn ? '✅ موجود' : '❌ غير موجود');
+            console.log('حقل الإدخال:', input ? '✅ موجود' : '❌ غير موجود');
+            
+            // ربط زر الإرسال
+            if (sendBtn) {
+                sendBtn.addEventListener('click', function(e) {
+                    console.log('🖱️ تم الضغط على زر الإرسال!');
+                    e.preventDefault();
+                    sendMessage();
+                });
+                
+                sendBtn.addEventListener('touchend', function(e) {
+                    console.log('👆 تم لمس زر الإرسال!');
+                    e.preventDefault();
+                    sendMessage();
+                });
+            }
+            
+            // ربط زر PRO
+            if (proBtn) {
+                proBtn.addEventListener('click', function(e) {
+                    console.log('🖱️ تم الضغط على زر PRO!');
+                    e.preventDefault();
+                    switchToPro();
+                });
+                
+                proBtn.addEventListener('touchend', function(e) {
+                    console.log('👆 تم لمس زر PRO!');
+                    e.preventDefault();
+                    switchToPro();
+                });
+            }
+            
+            // ربط Enter في حقل الإدخال
+            if (input) {
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        console.log('⌨️ تم الضغط على Enter!');
+                        e.preventDefault();
+                        sendMessage();
+                    }
+                });
+                input.focus();
+            }
+        });
+        
         async function sendMessage() {
-            console.log('📤 إرسال رسالة... Sending message...');
+            console.log('📤 بدء إرسال رسالة...');
             const input = document.getElementById('userInput');
             const message = input.value.trim();
             
             if (!message) {
-                console.log('⚠️ رسالة فارغة Empty message');
+                console.log('⚠️ رسالة فارغة');
+                alert('⚠️ الرجاء كتابة رسالة أولاً!');
                 return;
             }
             
@@ -286,6 +352,7 @@ HTML = """
             document.getElementById('loading').classList.add('active');
             
             try {
+                console.log('🌐 إرسال طلب للخادم...');
                 const response = await fetch('/chat', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
@@ -295,8 +362,9 @@ HTML = """
                     })
                 });
                 
+                console.log('📥 استلام رد من الخادم...');
                 const data = await response.json();
-                console.log('✅ استلام رد Received response');
+                console.log('✅ البيانات:', data);
                 
                 if (data.response) {
                     addMessage(data.response, 'ai');
@@ -306,7 +374,7 @@ HTML = """
                 }
                 
             } catch (error) {
-                console.error('❌ خطأ Error:', error);
+                console.error('❌ خطأ:', error);
                 addMessage('❌ خطأ في الاتصال. تأكد من الإنترنت.', 'ai');
             } finally {
                 input.disabled = false;
@@ -325,32 +393,22 @@ HTML = """
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
         
-        // Auto-focus on load
-        document.getElementById('userInput').focus();
-        console.log('✅ تم التركيز على حقل الإدخال Input focused');
-        
-        // التبديل إلى زيزو برو
         function switchToPro() {
-            console.log('🚀 محاولة التبديل إلى PRO...');
-            if (confirm('🚀 هل تريد التبديل إلى زيزو برو؟\n\nستحصل على:\n✅ إنشاء الصور (DALL-E 3)\n✅ إنشاء الفيديوهات\n✅ برمجة متقدمة\n✅ دمج APIs\n✅ نشر التطبيقات\n✅ اكتشاف الأخطاء\n✅ نماذج AI مخصصة')) {
-                console.log('✅ تم الموافقة Confirmed');
+            console.log('🚀 تشغيل وظيفة PRO...');
+            const confirmed = confirm('🚀 هل تريد التبديل إلى زيزو برو؟\n\nستحصل على:\n✅ إنشاء الصور (DALL-E 3)\n✅ إنشاء الفيديوهات\n✅ برمجة متقدمة\n✅ دمج APIs\n✅ نشر التطبيقات\n✅ اكتشاف الأخطاء\n✅ نماذج AI مخصصة');
+            
+            console.log('🤔 الرد:', confirmed ? 'موافق' : 'إلغاء');
+            
+            if (confirmed) {
+                console.log('✅ تم الموافقة - التوجيه إلى PRO');
                 addMessage('🚀 جاري التبديل إلى زيزو برو...', 'ai');
                 setTimeout(() => {
                     window.location.href = '/pro';
                 }, 1000);
             } else {
-                console.log('❌ تم الإلغاء Cancelled');
+                console.log('❌ تم الإلغاء');
             }
         }
-        
-        // Test buttons on load
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('📱 DOM جاهز Ready');
-            const sendBtn = document.getElementById('sendBtn');
-            const proBtn = document.querySelector('.pro-btn');
-            console.log('زر الإرسال Send button:', sendBtn ? '✅' : '❌');
-            console.log('زر PRO button:', proBtn ? '✅' : '❌');
-        });
     </script>
 </body>
 </html>
