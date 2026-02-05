@@ -5,6 +5,9 @@ from flask import Flask, render_template_string, request, jsonify, session
 from autoagent import MetaChain, Agent
 import os
 import secrets
+import base64
+import io
+from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -16,6 +19,19 @@ app.secret_key = secrets.token_hex(16)
 # إعدادات AI
 AI_MODEL = os.getenv("AI_MODEL", "gpt-4o-mini")
 client = MetaChain(log_path=None)
+
+# إعدادات رفع الملفات
+UPLOAD_FOLDER = '/tmp/uploads'
+ALLOWED_IMAGE_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+ALLOWED_FILE_EXTENSIONS = {'pdf', 'txt', 'doc', 'docx'}
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+
+def allowed_file(filename, allowed_extensions):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in allowed_extensions
 
 # إنشاء AI Agent
 ai_agent = Agent(
@@ -121,9 +137,81 @@ HTML = """
             background: #f8f9fa;
             border-top: 1px solid #ddd;
             display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .input-row {
+            display: flex;
             flex-direction: row;
             gap: 8px;
             align-items: stretch;
+        }
+        
+        .upload-buttons {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+        
+        .upload-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s;
+            white-space: nowrap;
+            flex-shrink: 0;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+        
+        .upload-btn:hover {
+            background: #218838;
+            transform: scale(1.05);
+        }
+        
+        .upload-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .file-preview {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            padding: 8px 0;
+        }
+        
+        .file-item {
+            background: #e9ecef;
+            padding: 8px 12px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .file-item .remove {
+            cursor: pointer;
+            color: #dc3545;
+            font-weight: bold;
+            padding: 0 5px;
+        }
+        
+        .preview-image {
+            max-width: 100px;
+            max-height: 100px;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+        
+        input[type="file"] {
+            display: none;
         }
         
         #userInput {
@@ -254,14 +342,30 @@ HTML = """
             </div>
             
             <div class="input-area">
-                <input 
-                    type="text" 
-                    id="userInput" 
-                    placeholder="اكتب رسالتك هنا..."
-                    onkeydown="if(event.key==='Enter'){event.preventDefault();sendMessage();}"
-                >
-                <button type="button" id="sendBtn" style="touch-action: manipulation;">إرسال</button>
-                <button type="button" class="pro-btn" style="touch-action: manipulation;">PRO 🚀</button>
+                <!-- File Previews -->
+                <div class="file-preview" id="filePreview" style="display: none;"></div>
+                
+                <!-- Input Row -->
+                <div class="input-row">
+                    <input 
+                        type="text" 
+                        id="userInput" 
+                        placeholder="اكتب رسالتك هنا..."
+                        onkeydown="if(event.key==='Enter'){event.preventDefault();sendMessage();}"
+                    >
+                    
+                    <!-- Upload Buttons -->
+                    <div class="upload-buttons">
+                        <input type="file" id="imageUpload" accept="image/*" multiple>
+                        <button type="button" class="upload-btn" onclick="document.getElementById('imageUpload').click()">📸 صورة</button>
+                        
+                        <input type="file" id="fileUpload" accept=".pdf,.txt,.doc,.docx" multiple>
+                        <button type="button" class="upload-btn" onclick="document.getElementById('fileUpload').click()">📄 ملف</button>
+                    </div>
+                    
+                    <button type="button" id="sendBtn" style="touch-action: manipulation;">إرسال</button>
+                    <button type="button" class="pro-btn" style="touch-action: manipulation;">PRO 🚀</button>
+                </div>
             </div>
         </div>
         
@@ -277,6 +381,7 @@ HTML = """
     <script>
         console.log('✅ زيزو جاهز! Zizo Ready!');
         let conversationHistory = [];
+        let uploadedFiles = [];
         
         // ربط الأحداث مباشرة بعد تحميل DOM
         document.addEventListener('DOMContentLoaded', function() {
@@ -331,21 +436,115 @@ HTML = """
                 });
                 input.focus();
             }
+            
+            // ربط رفع الصور
+            const imageUpload = document.getElementById('imageUpload');
+            if (imageUpload) {
+                imageUpload.addEventListener('change', function(e) {
+                    handleFileUpload(e.target.files, 'image');
+                });
+            }
+            
+            // ربط رفع الملفات
+            const fileUpload = document.getElementById('fileUpload');
+            if (fileUpload) {
+                fileUpload.addEventListener('change', function(e) {
+                    handleFileUpload(e.target.files, 'file');
+                });
+            }
         });
+        
+        async function handleFileUpload(files, type) {
+            console.log('📎 رفع ملفات:', type, files.length);
+            
+            for (let file of files) {
+                // تحقق من الحجم
+                if (file.size > 10 * 1024 * 1024) {
+                    alert('⚠️ الملف كبير جداً! الحد الأقصى: 10MB');
+                    continue;
+                }
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const fileData = {
+                        name: file.name,
+                        type: type,
+                        mimeType: file.type,
+                        data: e.target.result,
+                        size: file.size
+                    };
+                    
+                    uploadedFiles.push(fileData);
+                    displayFilePreview(fileData);
+                    console.log('✅ تم رفع:', file.name);
+                };
+                
+                if (type === 'image') {
+                    reader.readAsDataURL(file);
+                } else {
+                    reader.readAsDataURL(file);
+                }
+            }
+        }
+        
+        function displayFilePreview(fileData) {
+            const previewDiv = document.getElementById('filePreview');
+            previewDiv.style.display = 'flex';
+            
+            const fileItem = document.createElement('div');
+            fileItem.className = 'file-item';
+            
+            if (fileData.type === 'image') {
+                const img = document.createElement('img');
+                img.src = fileData.data;
+                img.className = 'preview-image';
+                fileItem.appendChild(img);
+            } else {
+                const icon = document.createElement('span');
+                icon.textContent = '📄 ';
+                fileItem.appendChild(icon);
+            }
+            
+            const name = document.createElement('span');
+            name.textContent = fileData.name;
+            fileItem.appendChild(name);
+            
+            const remove = document.createElement('span');
+            remove.className = 'remove';
+            remove.textContent = '×';
+            remove.onclick = function() {
+                uploadedFiles = uploadedFiles.filter(f => f.name !== fileData.name);
+                fileItem.remove();
+                if (uploadedFiles.length === 0) {
+                    previewDiv.style.display = 'none';
+                }
+            };
+            fileItem.appendChild(remove);
+            
+            previewDiv.appendChild(fileItem);
+        }
         
         async function sendMessage() {
             console.log('📤 بدء إرسال رسالة...');
             const input = document.getElementById('userInput');
             const message = input.value.trim();
             
-            if (!message) {
-                console.log('⚠️ رسالة فارغة');
-                alert('⚠️ الرجاء كتابة رسالة أولاً!');
+            if (!message && uploadedFiles.length === 0) {
+                console.log('⚠️ رسالة وملفات فارغة');
+                alert('⚠️ الرجاء كتابة رسالة أو رفع ملف!');
                 return;
             }
             
             console.log('📝 الرسالة:', message);
-            addMessage(message, 'user');
+            console.log('📎 الملفات:', uploadedFiles.length);
+            
+            // عرض رسالة المستخدم
+            let userDisplay = message;
+            if (uploadedFiles.length > 0) {
+                userDisplay += `\n📎 ${uploadedFiles.length} ملف مرفق`;
+            }
+            addMessage(userDisplay, 'user');
+            
             input.value = '';
             input.disabled = true;
             document.getElementById('sendBtn').disabled = true;
@@ -358,7 +557,8 @@ HTML = """
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ 
                         message: message,
-                        history: conversationHistory 
+                        history: conversationHistory,
+                        files: uploadedFiles
                     })
                 });
                 
@@ -369,6 +569,11 @@ HTML = """
                 if (data.response) {
                     addMessage(data.response, 'ai');
                     conversationHistory = data.history || conversationHistory;
+                    
+                    // مسح الملفات بعد الإرسال
+                    uploadedFiles = [];
+                    document.getElementById('filePreview').innerHTML = '';
+                    document.getElementById('filePreview').style.display = 'none';
                 } else {
                     addMessage('❌ عذراً، حدث خطأ. حاول مرة أخرى.', 'ai');
                 }
@@ -510,17 +715,46 @@ def pro():
 
 @app.route('/chat', methods=['POST'])
 def chat():
-    """معالجة الرسائل"""
+    """معالجة الرسائل مع دعم الملفات"""
     try:
         data = request.json
         user_message = data.get('message', '')
         history = data.get('history', [])
+        files = data.get('files', [])
         
-        if not user_message:
-            return jsonify({'error': 'رسالة فارغة'}), 400
+        if not user_message and not files:
+            return jsonify({'error': 'رسالة أو ملف مطلوب'}), 400
         
-        # إضافة رسالة المستخدم
-        history.append({"role": "user", "content": user_message})
+        # بناء المحتوى
+        if files:
+            # إذا كان هناك ملفات، نبني محتوى غني
+            content_parts = []
+            
+            # إضافة النص
+            if user_message:
+                content_parts.append({"type": "text", "text": user_message})
+            
+            # إضافة الملفات
+            for file in files:
+                if file.get('type') == 'image':
+                    # صور - نستخدم data URL مباشرة
+                    content_parts.append({
+                        "type": "image_url",
+                        "image_url": {
+                            "url": file['data']
+                        }
+                    })
+                else:
+                    # ملفات PDF/DOC - نضيف وصف
+                    content_parts.append({
+                        "type": "text",
+                        "text": f"\n[ملف مرفق: {file['name']}]\nملاحظة: معالجة الملفات PDF/DOC قيد التطوير. يرجى وصف محتوى الملف."
+                    })
+            
+            history.append({"role": "user", "content": content_parts})
+        else:
+            # رسالة نصية فقط
+            history.append({"role": "user", "content": user_message})
         
         # الحصول على رد AI
         response = client.run(
