@@ -1,0 +1,420 @@
+<!-- 
+    Widget زيزو للمتاجر الإلكترونية
+    قابل للنسخ واللصق في أي موقع
+    
+    تعليمات الاستخدام:
+    1. انسخ هذا الكود كاملاً
+    2. الصقه قبل </body> في صفحات موقعك
+    3. غيّر الألوان والنصوص حسب رغبتك
+    4. استمتع بمساعد ذكي 24/7!
+-->
+
+<!-- أنماط CSS للشات (اختياري - يمكن نقله إلى ملف CSS منفصل) -->
+<style>
+    #zizo-widget * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    /* زر الشات الرئيسي */
+    #zizo-chat-button {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: 3px solid white;
+        color: white;
+        font-size: 35px;
+        cursor: pointer;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        z-index: 999999;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: zizo-pulse 2s infinite;
+    }
+    
+    #zizo-chat-button:hover {
+        transform: scale(1.1);
+        box-shadow: 0 8px 30px rgba(102, 126, 234, 0.6);
+    }
+    
+    @keyframes zizo-pulse {
+        0% {
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        50% {
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.8), 
+                        0 0 0 10px rgba(102, 126, 234, 0.1);
+        }
+        100% {
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+    }
+    
+    /* نافذة الشات */
+    #zizo-chat-window {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        width: 380px;
+        height: 550px;
+        border-radius: 20px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        z-index: 999998;
+        display: none;
+        background: white;
+        overflow: hidden;
+        animation: zizo-slide-in 0.3s ease-out;
+    }
+    
+    @keyframes zizo-slide-in {
+        from {
+            transform: translateY(20px) scale(0.95);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+        }
+    }
+    
+    /* رأس الشات */
+    .zizo-chat-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 15px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .zizo-chat-header h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+    }
+    
+    .zizo-chat-header .status {
+        font-size: 12px;
+        opacity: 0.9;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
+    .zizo-status-dot {
+        width: 8px;
+        height: 8px;
+        background: #4ade80;
+        border-radius: 50%;
+        animation: zizo-blink 2s infinite;
+    }
+    
+    @keyframes zizo-blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.3; }
+    }
+    
+    .zizo-close-btn {
+        background: rgba(255,255,255,0.2);
+        border: none;
+        color: white;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 20px;
+        line-height: 1;
+        transition: all 0.2s;
+    }
+    
+    .zizo-close-btn:hover {
+        background: rgba(255,255,255,0.3);
+        transform: rotate(90deg);
+    }
+    
+    /* محتوى الشات (iframe) */
+    .zizo-chat-content {
+        width: 100%;
+        height: calc(100% - 70px);
+        border: none;
+    }
+    
+    /* رسالة ترحيبية */
+    .zizo-welcome-tooltip {
+        position: fixed;
+        bottom: 100px;
+        left: 20px;
+        background: white;
+        padding: 15px 20px;
+        border-radius: 15px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+        max-width: 280px;
+        z-index: 999997;
+        animation: zizo-tooltip-in 0.5s ease-out;
+    }
+    
+    @keyframes zizo-tooltip-in {
+        from {
+            transform: translateX(-20px);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    .zizo-welcome-tooltip p {
+        margin: 0;
+        color: #333;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+    
+    .zizo-welcome-tooltip strong {
+        color: #667eea;
+    }
+    
+    .zizo-welcome-tooltip::after {
+        content: '';
+        position: absolute;
+        bottom: -8px;
+        left: 30px;
+        width: 0;
+        height: 0;
+        border-left: 8px solid transparent;
+        border-right: 8px solid transparent;
+        border-top: 8px solid white;
+    }
+    
+    /* تصميم متجاوب */
+    @media (max-width: 768px) {
+        #zizo-chat-window {
+            width: calc(100% - 20px);
+            height: calc(100% - 100px);
+            left: 10px;
+            bottom: 90px;
+            border-radius: 15px;
+        }
+        
+        #zizo-chat-button {
+            width: 60px;
+            height: 60px;
+            font-size: 30px;
+        }
+        
+        .zizo-welcome-tooltip {
+            max-width: calc(100% - 100px);
+        }
+    }
+</style>
+
+<!-- كود JavaScript للشات -->
+<script>
+(function() {
+    'use strict';
+    
+    // إعدادات قابلة للتخصيص
+    const ZIZO_CONFIG = {
+        // رابط تطبيق زيزو (غيّره إلى رابطك الدائم عند النشر)
+        chatUrl: 'https://5000-ik098qc46w5n2q8a9szme-5185f4aa.sandbox.novita.ai',
+        
+        // اسم المتجر
+        storeName: 'زهرة أمل',
+        
+        // رسالة الترحيب
+        welcomeMessage: '👋 مرحباً! أنا زيزو، مساعدك الذكي. كيف يمكنني مساعدتك اليوم؟',
+        
+        // مدة ظهور رسالة الترحيب (بالثواني)
+        welcomeDelay: 3,
+        welcomeDuration: 7,
+        
+        // تمكين الصوت
+        enableSound: false,
+        
+        // موضع الشات (left أو right)
+        position: 'left'
+    };
+    
+    // إنشاء عناصر واجهة الشات
+    function createChatElements() {
+        const widget = document.createElement('div');
+        widget.id = 'zizo-widget';
+        
+        // زر الشات
+        const button = document.createElement('button');
+        button.id = 'zizo-chat-button';
+        button.innerHTML = '🤖';
+        button.setAttribute('aria-label', 'فتح الشات مع زيزو');
+        button.setAttribute('title', 'تحدث مع زيزو - مساعدك الذكي');
+        
+        // نافذة الشات
+        const chatWindow = document.createElement('div');
+        chatWindow.id = 'zizo-chat-window';
+        chatWindow.innerHTML = `
+            <div class="zizo-chat-header">
+                <div>
+                    <h3>🤖 زيزو - مساعد ${ZIZO_CONFIG.storeName}</h3>
+                    <div class="status">
+                        <span class="zizo-status-dot"></span>
+                        <span>متصل الآن</span>
+                    </div>
+                </div>
+                <button class="zizo-close-btn" aria-label="إغلاق الشات">✕</button>
+            </div>
+            <iframe 
+                class="zizo-chat-content"
+                src="${ZIZO_CONFIG.chatUrl}"
+                allow="microphone"
+                title="شات زيزو"
+            ></iframe>
+        `;
+        
+        widget.appendChild(button);
+        widget.appendChild(chatWindow);
+        document.body.appendChild(widget);
+        
+        return { button, chatWindow };
+    }
+    
+    // عرض رسالة الترحيب
+    function showWelcomeMessage() {
+        const tooltip = document.createElement('div');
+        tooltip.className = 'zizo-welcome-tooltip';
+        tooltip.innerHTML = `
+            <p><strong>زيزو:</strong> ${ZIZO_CONFIG.welcomeMessage}</p>
+        `;
+        
+        document.body.appendChild(tooltip);
+        
+        // إخفاء بعد المدة المحددة
+        setTimeout(() => {
+            tooltip.style.animation = 'zizo-tooltip-in 0.3s ease-out reverse';
+            setTimeout(() => tooltip.remove(), 300);
+        }, ZIZO_CONFIG.welcomeDuration * 1000);
+        
+        return tooltip;
+    }
+    
+    // فتح الشات
+    function openChat(chatWindow, button, tooltip) {
+        chatWindow.style.display = 'block';
+        button.style.display = 'none';
+        
+        if (tooltip) {
+            tooltip.remove();
+        }
+        
+        // تتبع الحدث (اختياري - للإحصائيات)
+        if (typeof gtag !== 'undefined') {
+            gtag('event', 'zizo_chat_opened', {
+                'event_category': 'engagement',
+                'event_label': 'Chat Widget'
+            });
+        }
+    }
+    
+    // إغلاق الشات
+    function closeChat(chatWindow, button) {
+        chatWindow.style.display = 'none';
+        button.style.display = 'flex';
+        
+        // تتبع الحدث
+        if (typeof gtag !== 'undefined') {
+            gtag('event', 'zizo_chat_closed', {
+                'event_category': 'engagement',
+                'event_label': 'Chat Widget'
+            });
+        }
+    }
+    
+    // تهيئة الشات عند تحميل الصفحة
+    function initZizoChat() {
+        // إنشاء العناصر
+        const { button, chatWindow } = createChatElements();
+        const closeBtn = chatWindow.querySelector('.zizo-close-btn');
+        
+        let welcomeTooltip = null;
+        
+        // عرض رسالة الترحيب بعد التأخير
+        setTimeout(() => {
+            // عرض فقط إذا لم يفتح المستخدم الشات
+            if (chatWindow.style.display !== 'block') {
+                welcomeTooltip = showWelcomeMessage();
+            }
+        }, ZIZO_CONFIG.welcomeDelay * 1000);
+        
+        // أحداث الأزرار
+        button.addEventListener('click', () => {
+            openChat(chatWindow, button, welcomeTooltip);
+        });
+        
+        closeBtn.addEventListener('click', () => {
+            closeChat(chatWindow, button);
+        });
+        
+        // الإغلاق بالضغط على Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && chatWindow.style.display === 'block') {
+                closeChat(chatWindow, button);
+            }
+        });
+        
+        console.log('✅ زيزو جاهز للخدمة!');
+    }
+    
+    // تشغيل عند تحميل DOM
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initZizoChat);
+    } else {
+        initZizoChat();
+    }
+    
+    // إتاحة وظائف عامة (اختياري)
+    window.ZizoChat = {
+        open: function() {
+            document.getElementById('zizo-chat-button').click();
+        },
+        close: function() {
+            document.querySelector('.zizo-close-btn').click();
+        },
+        isOpen: function() {
+            const window = document.getElementById('zizo-chat-window');
+            return window && window.style.display === 'block';
+        }
+    };
+    
+})();
+</script>
+
+<!-- 
+    ملاحظات مهمة:
+    
+    1. تغيير الرابط:
+       عند نشر التطبيق على Render أو Railway، 
+       غيّر ZIZO_CONFIG.chatUrl إلى الرابط الدائم
+    
+    2. التخصيص:
+       يمكنك تعديل الألوان في CSS أعلاه
+       أو تعديل النصوص في ZIZO_CONFIG
+    
+    3. الموضع:
+       لتغيير موضع الشات من اليسار إلى اليمين،
+       غيّر 'left' إلى 'right' في CSS
+    
+    4. الاستخدام البرمجي:
+       يمكنك فتح الشات من أي مكان في موقعك:
+       <button onclick="ZizoChat.open()">تحدث مع زيزو</button>
+    
+    5. الإحصائيات:
+       إذا كنت تستخدم Google Analytics،
+       ستُسجل أحداث فتح/إغلاق الشات تلقائياً
+-->
