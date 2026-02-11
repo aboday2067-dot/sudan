@@ -9,6 +9,25 @@ import io
 import json
 import requests
 
+# Try importing optional APIs
+try:
+    import replicate
+    REPLICATE_AVAILABLE = True
+except ImportError:
+    REPLICATE_AVAILABLE = False
+
+try:
+    import fal_client
+    FAL_AVAILABLE = True
+except ImportError:
+    FAL_AVAILABLE = False
+
+try:
+    from huggingface_hub import InferenceClient
+    HUGGINGFACE_AVAILABLE = True
+except ImportError:
+    HUGGINGFACE_AVAILABLE = False
+
 app = Flask(__name__)
 
 # Load OpenAI config
@@ -20,6 +39,26 @@ client = OpenAI(
     api_key=config['openai']['api_key'],
     base_url=config['openai']['base_url']
 )
+
+# Initialize APIs
+FAL_ENABLED = False
+REPLICATE_ENABLED = False
+HUGGINGFACE_ENABLED = False
+
+# Setup FAL.AI
+if FAL_AVAILABLE and 'fal_ai' in config and 'api_key' in config['fal_ai']:
+    os.environ["FAL_KEY"] = config['fal_ai']['api_key']
+    FAL_ENABLED = True
+
+# Setup Replicate
+if REPLICATE_AVAILABLE and 'replicate' in config and 'api_token' in config['replicate']:
+    os.environ["REPLICATE_API_TOKEN"] = config['replicate']['api_token']
+    REPLICATE_ENABLED = True
+
+# Setup Hugging Face
+if HUGGINGFACE_AVAILABLE and 'huggingface' in config and 'token' in config['huggingface']:
+    hf_client = InferenceClient(token=config['huggingface']['token'])
+    HUGGINGFACE_ENABLED = True
 
 # Stats
 stats = {
@@ -1031,9 +1070,43 @@ def chat_mode(user_message, files, history):
     })
 
 def generate_image_dalle(prompt):
-    """Generate image using FAL.AI or Replicate"""
+    """Generate image using Hugging Face (FREE!), FAL.AI, or Replicate"""
     try:
-        # Try FAL.AI first (faster and higher quality)
+        # Try Hugging Face first (FREE and Open Source!)
+        if HUGGINGFACE_ENABLED:
+            try:
+                # Use Flux Schnell (fastest free model)
+                image = hf_client.text_to_image(
+                    prompt,
+                    model="black-forest-labs/FLUX.1-schnell"
+                )
+                
+                # Save image temporarily
+                import uuid
+                filename = f"hf_image_{uuid.uuid4().hex[:8]}.png"
+                filepath = os.path.join('/tmp', filename)
+                image.save(filepath)
+                
+                # Read as base64
+                with open(filepath, 'rb') as f:
+                    image_data = base64.b64encode(f.read()).decode()
+                
+                image_url = f"data:image/png;base64,{image_data}"
+                
+                stats['generated_images'] += 1
+                
+                return jsonify({
+                    'response': f'🎨 **تم توليد الصورة بنجاح! (مجاني 100%)** 🤗\\n\\n**الوصف:** {prompt}\\n**النموذج:** FLUX.1 Schnell (Hugging Face)\\n**المصدر:** مفتوح المصدر ومجاني\\n**الجودة:** عالية جداً',
+                    'type': 'image',
+                    'image_url': image_url,
+                    'status': 'success',
+                    'history': []
+                })
+            except Exception as hf_error:
+                # If Hugging Face fails, try fallback
+                print(f"Hugging Face error: {hf_error}")
+        
+        # Try FAL.AI (if Hugging Face failed or not available)
         if FAL_ENABLED:
             handler = fal_client.submit(
                 "fal-ai/flux-pro/v1.1",
@@ -1085,7 +1158,7 @@ def generate_image_dalle(prompt):
         
         else:
             return jsonify({
-                'response': f'🎨 **توليد الصور غير مفعّل**\\n\\n**الوصف:** {prompt}\\n\\n**ملاحظة:** لتفعيل التوليد، أضف FAL.AI أو Replicate API Key في الإعدادات.',
+                'response': f'🎨 **توليد الصور غير مفعّل**\\n\\n**الوصف:** {prompt}\\n\\n**ملاحظة:** لتفعيل التوليد المجاني، أرسل Hugging Face Token (hf_xxx).',
                 'type': 'image',
                 'status': 'disabled',
                 'history': []
@@ -1093,7 +1166,7 @@ def generate_image_dalle(prompt):
             
     except Exception as e:
         return jsonify({
-            'response': f'❌ **خطأ في توليد الصورة**\\n\\n**الخطأ:** {str(e)}\\n\\n**الوصف:** {prompt}\\n\\n**نصيحة:** تأكد من صحة API Key',
+            'response': f'❌ **خطأ في توليد الصورة**\\n\\n**الخطأ:** {str(e)}\\n\\n**الوصف:** {prompt}\\n\\n**نصيحة:** تأكد من صحة Hugging Face Token',
             'type': 'error',
             'history': []
         })
