@@ -165,6 +165,7 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
             flex: 1;
             overflow-y: auto;
             padding: 12px;
+            padding-bottom: 80px;
             background: linear-gradient(to bottom, #ffecd2 0%, #fcb69f 100%);
         }
         
@@ -298,6 +299,12 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
             padding: 10px;
             border-top: 2px solid #667eea;
             box-shadow: 0 -4px 15px rgba(0,0,0,0.08);
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: 100%;
+            z-index: 100;
         }
         
         .input-wrapper {
