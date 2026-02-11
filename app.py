@@ -1023,17 +1023,8 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
         }
         
         function previewCode(filename) {
-            // معاينة الكود في نافذة منبثقة
-            fetch(`/download/${filename}`)
-                .then(response => response.text())
-                .then(code => {
-                    const previewWindow = window.open('', '_blank', 'width=800,height=600');
-                    previewWindow.document.write(code);
-                    previewWindow.document.close();
-                })
-                .catch(error => {
-                    alert('خطأ في المعاينة: ' + error);
-                });
+            // معاينة مباشرة عبر endpoint مخصص
+            window.open(`/preview/${filename}`, '_blank', 'width=1200,height=800');
         }
         
         async function speakText(text) {
@@ -1524,6 +1515,22 @@ def download_file(filename):
             as_attachment=True,
             download_name=filename
         )
+    return "File not found", 404
+
+@app.route('/preview/<filename>')
+def preview_file(filename):
+    """Preview generated code/website in browser"""
+    if filename in generated_content:
+        content = generated_content[filename]
+        # تحديد نوع الملف
+        if filename.endswith('.html') or 'website_' in filename:
+            return content, 200, {'Content-Type': 'text/html; charset=utf-8'}
+        elif filename.endswith('.js'):
+            return content, 200, {'Content-Type': 'application/javascript; charset=utf-8'}
+        elif filename.endswith('.css'):
+            return content, 200, {'Content-Type': 'text/css; charset=utf-8'}
+        else:
+            return content, 200, {'Content-Type': 'text/plain; charset=utf-8'}
     return "File not found", 404
 
 @app.route('/api/keys', methods=['GET', 'POST'])
