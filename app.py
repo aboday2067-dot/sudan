@@ -501,6 +501,7 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
             <button class="power-btn" onclick="setPower('website')">🌐 مواقع</button>
             <button class="power-btn" onclick="setPower('app')">📱 تطبيقات</button>
             <button class="power-btn" onclick="setPower('audio')">🎵 صوت</button>
+            <button class="power-btn" onclick="showSettings()" style="background: linear-gradient(135deg, #ffd140, #f5576c); color: white;">⚙️</button>
         </div>
         
         <div id="messages"></div>
@@ -522,6 +523,39 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
     
     <input type="file" id="imageUpload" accept="image/*" style="display:none;" onchange="handleImageUpload(event)">
     <input type="file" id="fileUpload" accept=".pdf,.txt,.doc,.docx" style="display:none;" onchange="handleFileUpload(event)">
+    
+    <!-- Settings Modal -->
+    <div id="settingsModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9999; justify-content: center; align-items: center;">
+        <div style="background: white; border-radius: 20px; padding: 30px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto;">
+            <h2 style="margin-top: 0; color: #667eea;">⚙️ إعدادات API Keys</h2>
+            
+            <div id="keysStatus" style="margin: 20px 0;">
+                <p style="color: #666;">جاري التحميل...</p>
+            </div>
+            
+            <div style="background: #f5f5f5; padding: 15px; border-radius: 10px; margin: 20px 0;">
+                <h3 style="margin-top: 0; font-size: 16px;">📚 دليل الحصول على API Keys</h3>
+                <p style="font-size: 14px; line-height: 1.6;">
+                    لتفعيل توليد الصور/الفيديو/الصوت، تحتاج لمفاتيح API من الخدمات التالية:
+                </p>
+                <ul style="font-size: 14px; line-height: 1.8;">
+                    <li><strong>GenSpark</strong>: رصيد مجاني 100 رصيد</li>
+                    <li><strong>FAL.AI</strong>: $5 رصيد مجاني للصور</li>
+                    <li><strong>ElevenLabs</strong>: 10K حرف مجاناً للصوت</li>
+                    <li><strong>Replicate</strong>: $10 رصيد للفيديو</li>
+                </ul>
+                <a href="/api-keys-guide" target="_blank" style="background: #667eea; color: white; padding: 10px 20px; text-decoration: none; border-radius: 8px; display: inline-block; margin-top: 10px;">
+                    📖 اقرأ الدليل الكامل
+                </a>
+            </div>
+            
+            <div style="margin-top: 30px;">
+                <button onclick="closeSettings()" style="background: #667eea; color: white; padding: 12px 30px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; width: 100%;">
+                    ✅ حسناً
+                </button>
+            </div>
+        </div>
+    </div>
     
     <script>
         let uploadedFiles = [];
@@ -868,6 +902,59 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
                 alert('❌ خطأ في توليد الصوت');
             }
         }
+        
+        async function showSettings() {
+            const modal = document.getElementById('settingsModal');
+            modal.style.display = 'flex';
+            
+            // Load API keys status
+            try {
+                const response = await fetch('/api/keys');
+                const data = await response.json();
+                
+                let html = '<div style="font-size: 14px;">';
+                html += '<h3 style="font-size: 16px; margin-bottom: 15px;">حالة API Keys:</h3>';
+                
+                const services = {
+                    'genspark': { name: 'GenSpark', icon: '🌟' },
+                    'fal_ai': { name: 'FAL.AI', icon: '🎨' },
+                    'stability': { name: 'Stability AI', icon: '🎨' },
+                    'elevenlabs': { name: 'ElevenLabs', icon: '🎵' },
+                    'replicate': { name: 'Replicate', icon: '🎬' }
+                };
+                
+                for (const [key, service] of Object.entries(services)) {
+                    const status = data.keys[key];
+                    const statusIcon = status.present ? '✅' : '❌';
+                    const statusText = status.present ? 'مفعّل' : 'غير مفعّل';
+                    const statusColor = status.present ? '#4caf50' : '#f44336';
+                    
+                    html += `<div style="padding: 10px; margin: 8px 0; background: #f9f9f9; border-radius: 8px; border-right: 4px solid ${statusColor};">`;
+                    html += `<strong>${service.icon} ${service.name}</strong>: ${statusIcon} ${statusText}`;
+                    if (status.present && status.key) {
+                        html += `<br><small style="color: #666; font-family: monospace;">${status.key}</small>`;
+                    }
+                    html += `</div>`;
+                }
+                
+                html += '</div>';
+                document.getElementById('keysStatus').innerHTML = html;
+            } catch (error) {
+                document.getElementById('keysStatus').innerHTML = '<p style="color: red;">❌ خطأ في تحميل الحالة</p>';
+            }
+        }
+        
+        function closeSettings() {
+            document.getElementById('settingsModal').style.display = 'none';
+        }
+        
+        // Close modal on outside click
+        document.addEventListener('click', (e) => {
+            const modal = document.getElementById('settingsModal');
+            if (e.target === modal) {
+                closeSettings();
+            }
+        });
     </script>
 </body>
 </html>'''
@@ -1192,6 +1279,131 @@ def download_file(filename):
         )
     return "File not found", 404
 
+@app.route('/api/keys', methods=['GET', 'POST'])
+def manage_api_keys():
+    """Manage API Keys"""
+    if request.method == 'GET':
+        # Get current keys (masked)
+        keys_info = {}
+        
+        # Check GenSpark
+        if 'genspark' in config and 'api_key' in config.get('genspark', {}):
+            key = config['genspark']['api_key']
+            keys_info['genspark'] = {
+                'present': True,
+                'key': key[:10] + '...' + key[-5:] if key else None,
+                'status': 'active'
+            }
+        else:
+            keys_info['genspark'] = {'present': False, 'status': 'missing'}
+        
+        # Check other services
+        for service in ['fal_ai', 'stability', 'elevenlabs', 'replicate']:
+            if service in config and 'api_key' in config.get(service, {}):
+                key = config[service]['api_key']
+                keys_info[service] = {
+                    'present': True,
+                    'key': key[:10] + '...' + key[-5:] if key else None,
+                    'status': 'active'
+                }
+            else:
+                keys_info[service] = {'present': False, 'status': 'missing'}
+        
+        return jsonify({
+            'keys': keys_info,
+            'guide_url': '/api-keys-guide'
+        })
+    
+    elif request.method == 'POST':
+        # Add/update a key
+        data = request.json
+        service = data.get('service')
+        api_key = data.get('api_key')
+        
+        if not service or not api_key:
+            return jsonify({'error': 'Missing service or api_key'}), 400
+        
+        # Update config
+        if service not in config:
+            config[service] = {}
+        config[service]['api_key'] = api_key
+        
+        # Save to file
+        with open(config_path, 'w') as f:
+            yaml.dump(config, f)
+        
+        return jsonify({
+            'success': True,
+            'message': f'✅ تم إضافة مفتاح {service} بنجاح!',
+            'service': service
+        })
+
+@app.route('/api-keys-guide')
+def api_keys_guide():
+    """Show API Keys Guide"""
+    try:
+        with open('/home/user/webapp/API_KEYS_GUIDE.md', 'r', encoding='utf-8') as f:
+            guide = f.read()
+        
+        # Convert markdown to HTML (simple)
+        html = guide.replace('# ', '<h1>').replace('\n## ', '</h1>\n<h2>')
+        html = html.replace('\n### ', '</h2>\n<h3>').replace('\n', '<br>')
+        
+        return f'''
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <title>دليل API Keys</title>
+    <style>
+        body {{
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }}
+        pre {{
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+        }}
+        code {{
+            background: #e0e0e0;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }}
+        h1 {{ color: #667eea; }}
+        h2 {{ color: #764ba2; margin-top: 30px; }}
+        table {{
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }}
+        th, td {{
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: right;
+        }}
+        th {{
+            background: #667eea;
+            color: white;
+        }}
+    </style>
+</head>
+<body>
+    <pre>{guide}</pre>
+    <br><br>
+    <a href="/" style="background: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block;">
+        🏠 العودة لزيزو
+    </a>
+</body>
+</html>'''
+    except Exception as e:
+        return f"Error loading guide: {str(e)}", 500
+
 @app.route('/health')
 def health():
     uptime = int(time.time() - stats['start_time'])
@@ -1199,7 +1411,7 @@ def health():
         'status': 'healthy',
         'app': 'Zizo Ultimate',
         'model': 'GPT-5',
-        'version': '8.0.0-ultimate',
+        'version': '8.2.0-ultimate',
         'gpt5_available': True,
         'stats': {
             'total_messages': stats['total_messages'],
