@@ -302,17 +302,18 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
         
         .input-wrapper {
             display: flex;
-            gap: 6px;
+            gap: 4px;
             align-items: center;
+            justify-content: space-between;
         }
         
         /* ULTIMATE BUTTONS */
         .btn-ultimate {
-            width: 50px !important;
-            height: 50px !important;
+            width: 44px !important;
+            height: 44px !important;
             border-radius: 50% !important;
             border: none;
-            font-size: 22px;
+            font-size: 20px;
             cursor: pointer;
             transition: all 0.3s;
             box-shadow: 0 4px 12px rgba(0,0,0,0.2);
@@ -346,8 +347,8 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
         
         .btn-send {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-            width: 54px !important;
-            height: 54px !important;
+            width: 48px !important;
+            height: 48px !important;
         }
         
         .btn-ultimate:active {
@@ -359,10 +360,12 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
             border: 2px solid #667eea;
             border-radius: 24px;
             padding: 10px 16px;
-            font-size: 15px;
+            font-size: 14px;
             outline: none;
             background: #f8f9ff;
-            min-height: 50px;
+            min-height: 44px;
+            max-height: 44px;
+            resize: none;
         }
         
         #userInput:focus {
