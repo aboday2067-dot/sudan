@@ -200,6 +200,36 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
             transform: scale(1.05);
         }
         
+        /* Ultimate Features Buttons */
+        .feature-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.3s;
+            flex-shrink: 0;
+            box-shadow: 0 3px 10px rgba(102, 126, 234, 0.4);
+        }
+        
+        .feature-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.6);
+        }
+        
+        .feature-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .feature-btn.active {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+            box-shadow: 0 5px 20px rgba(250, 112, 154, 0.6);
+        }
+        
         /* Messages */
         #messages {
             flex: 1;
@@ -600,6 +630,12 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
             <button class="power-btn" onclick="setPower('website')">🌐 مواقع</button>
             <button class="power-btn" onclick="setPower('app')">📱 تطبيقات</button>
             <button class="power-btn" onclick="setPower('audio')">🎵 صوت</button>
+        </div>
+        
+        <div id="ultimateFeaturesBar" style="margin-top: 10px; display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;">
+            <button class="feature-btn" onclick="setPower('painter')" title="تحويل الوصف/الرسم إلى كود">🎨 Code Painter</button>
+            <button class="feature-btn" onclick="setPower('translator')" title="ترجمة الكود بين اللغات">🔄 Translator</button>
+            <button class="feature-btn" onclick="setPower('deploy')" title="نشر مشروعك بضغطة واحدة">🚀 Deploy</button>
             <button class="power-btn" onclick="showSettings()" style="background: linear-gradient(135deg, #ffd140, #f5576c); color: white;">⚙️</button>
         </div>
         
@@ -680,7 +716,7 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
         function setPower(power) {
             currentPower = power;
             
-            document.querySelectorAll('.power-btn').forEach(btn => {
+            document.querySelectorAll('.power-btn, .feature-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
             event.target.classList.add('active');
@@ -692,7 +728,10 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
                 'code': 'اطلب الكود: تطبيق آلة حاسبة بـ Python',
                 'website': 'صف الموقع: صفحة هبوط عصرية',
                 'app': 'صف التطبيق: تطبيق قائمة مهام',
-                'audio': 'اطلب الصوت: موسيقى هادئة للاسترخاء'
+                'audio': 'اطلب الصوت: موسيقى هادئة للاسترخاء',
+                'painter': '🎨 صف التصميم: صفحة تسجيل دخول حديثة وجميلة',
+                'translator': '🔄 الصق الكود المراد ترجمته...',
+                'deploy': '🚀 اسم المشروع والمنصة (vercel/netlify/github)'
             };
             
             document.getElementById('userInput').placeholder = placeholders[power];
@@ -879,16 +918,54 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
                 'audio': { icon: '🎵', title: 'جاري توليد الصوت...', subtitle: 'الموسيقى تُنشأ' },
                 'code': { icon: '💻', title: 'جاري كتابة الكود...', subtitle: 'المبرمج يعمل' },
                 'website': { icon: '🌐', title: 'جاري بناء الموقع...', subtitle: 'التصميم جارٍ' },
-                'app': { icon: '📱', title: 'جاري تطوير التطبيق...', subtitle: 'البرمجة جارية' }
+                'app': { icon: '📱', title: 'جاري تطوير التطبيق...', subtitle: 'البرمجة جارية' },
+                'painter': { icon: '🎨', title: 'جاري رسم الكود...', subtitle: 'Code Painter يعمل' },
+                'translator': { icon: '🔄', title: 'جاري ترجمة الكود...', subtitle: 'Universal Translator يعمل' },
+                'deploy': { icon: '🚀', title: 'جاري تجهيز النشر...', subtitle: 'Deployment يُعد' }
             };
             const config = loadingConfig[currentPower] || loadingConfig['chat'];
             showLoading(config.icon, config.title, config.subtitle);
             
             try {
-                const response = await fetch('/ultimate', {
+                let endpoint = '/ultimate';
+                let fetchData = data;
+                
+                // معالجة الميزات الجديدة
+                if (currentPower === 'painter') {
+                    endpoint = '/code-painter';
+                    fetchData = {
+                        description: message,
+                        history: conversationHistory
+                    };
+                } else if (currentPower === 'translator') {
+                    // استخراج اللغة من الرسالة
+                    const match = message.match(/من\s+(\w+)\s+إلى\s+(\w+)/i);
+                    const fromLang = match ? match[1] : 'JavaScript';
+                    const toLang = match ? match[2] : 'Python';
+                    endpoint = '/translate-code';
+                    fetchData = {
+                        code: message,
+                        from: fromLang,
+                        to: toLang,
+                        history: conversationHistory
+                    };
+                } else if (currentPower === 'deploy') {
+                    // استخراج المعلومات من الرسالة
+                    const platformMatch = message.match(/\b(vercel|netlify|github)\b/i);
+                    const platform = platformMatch ? platformMatch[1].toLowerCase() : 'vercel';
+                    endpoint = '/deploy';
+                    fetchData = {
+                        code: message,
+                        name: 'my-zizo-project',
+                        platform: platform,
+                        history: conversationHistory
+                    };
+                }
+                
+                const response = await fetch(endpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
+                    body: JSON.stringify(fetchData)
                 });
                 
                 const result = await response.json();
@@ -948,6 +1025,19 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
                                 </div>
                                 <div style="margin-top: 15px;">
                                     <button class="download-btn" onclick="downloadCode('${result.filename}')" style="background: white; color: #667eea; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold;">⬇️ تحميل الموقع</button>
+                                </div>
+                            </div>
+                        `;
+                    } else if (result.type === 'deployment' && result.guide) {
+                        // عرض دليل النشر
+                        displayMessage = `
+                            <div style="background: linear-gradient(135deg, #fa709a, #fee140); border-radius: 15px; padding: 25px; margin: 10px 0;">
+                                <div style="color: #333; font-weight: bold; margin-bottom: 15px; font-size: 20px;">🚀 جاهز للنشر!</div>
+                                <div style="background: white; border-radius: 10px; padding: 20px; color: #333; text-align: right;">
+                                    <pre style="white-space: pre-wrap; font-family: 'Segoe UI', Tahoma, sans-serif; line-height: 1.8;">${escapeHtml(result.response)}</pre>
+                                </div>
+                                <div style="margin-top: 15px;">
+                                    <button class="download-btn" onclick="downloadCode('${result.filename}')" style="background: white; color: #fa709a; border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">📥 تحميل الدليل الكامل</button>
                                 </div>
                             </div>
                         `;
@@ -1188,6 +1278,46 @@ def suggest():
         history = data.get('history', [])
         
         return smart_suggest(project_description, current_code, history)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/code-painter', methods=['POST'])
+def paint_code():
+    """AI Code Painter - رسم الكود"""
+    try:
+        data = request.json
+        description = data.get('description', '')
+        history = data.get('history', [])
+        
+        return code_painter(description, history)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/translate-code', methods=['POST'])
+def translate():
+    """Universal Translator - ترجمة الكود"""
+    try:
+        data = request.json
+        source_code = data.get('code', '')
+        from_lang = data.get('from', 'JavaScript')
+        to_lang = data.get('to', 'Python')
+        history = data.get('history', [])
+        
+        return universal_translator(source_code, from_lang, to_lang, history)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/deploy', methods=['POST'])
+def deploy_project():
+    """One-Click Deploy - نشر سريع"""
+    try:
+        data = request.json
+        project_code = data.get('code', '')
+        project_name = data.get('name', 'my-project')
+        platform = data.get('platform', 'vercel')  # vercel, netlify, github
+        history = data.get('history', [])
+        
+        return one_click_deploy(project_code, project_name, platform, history)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -1832,6 +1962,265 @@ def smart_suggest(project_description, current_code, history):
             'response': f'💡 **اقتراحات ذكية:**\n\n{suggestions}',
             'type': 'suggestion',
             'suggestions': suggestions,
+            'history': history[-20:]
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ============================================
+# 🎨 ULTIMATE FEATURES - المرحلة 1
+# ============================================
+
+def code_painter(description_or_image, history):
+    """تحويل الوصف/الرسم/الصورة إلى كود"""
+    try:
+        messages = [
+            {"role": "system", "content": """أنت AI Code Painter - مصمم ومطور خبير.
+مهمتك:
+1. فهم الوصف أو تحليل الصورة/الرسم
+2. تحويلها لكود HTML/CSS/JS كامل
+3. التصميم يجب أن يكون:
+   - Responsive (يعمل على جميع الشاشات)
+   - Modern (تصميم عصري)
+   - Interactive (تفاعلي)
+   - Accessible (سهل الاستخدام)
+4. إضافة animations وtransitions جميلة
+5. كود نظيف ومنظم
+
+اكتب كود production-ready."""}
+        ]
+        
+        messages.extend(history[-2:])
+        
+        prompt = f"""صمم وابني واجهة كاملة من هذا الوصف:
+
+{description_or_image}
+
+المطلوب:
+- HTML كامل مع CSS و JavaScript
+- تصميم responsive
+- ألوان جميلة ومتناسقة
+- تأثيرات تفاعلية
+- أيقونات وصور placeholder
+- في ملف HTML واحد"""
+        
+        messages.append({"role": "user", "content": prompt})
+        
+        response = client.chat.completions.create(
+            model="gpt-5",
+            messages=messages,
+            temperature=0.4,
+            max_tokens=5000
+        )
+        
+        code = response.choices[0].message.content
+        
+        # Extract HTML
+        if '```html' in code:
+            code = code.split('```html')[1].split('```')[0].strip()
+        elif '```' in code:
+            parts = code.split('```')
+            if len(parts) >= 3:
+                code = parts[1].strip()
+        
+        filename = f"painted_{int(time.time())}.html"
+        generated_content[filename] = code
+        
+        return jsonify({
+            'response': '🎨 **تم رسم الكود!**',
+            'type': 'website',
+            'code': code,
+            'filename': filename,
+            'history': history[-20:]
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+def universal_translator(source_code, from_lang, to_lang, history):
+    """ترجمة الكود من لغة لأخرى"""
+    try:
+        messages = [
+            {"role": "system", "content": f"""أنت Universal Code Translator - مترجم أكواد خبير.
+مهمتك ترجمة الكود من {from_lang} إلى {to_lang}:
+1. الحفاظ على نفس المنطق والوظائف
+2. استخدام أفضل الممارسات في {to_lang}
+3. تحسين الأداء إن أمكن
+4. إضافة تعليقات توضيحية
+5. معالجة الفروقات بين اللغتين
+6. التأكد من أن الكود يعمل بنفس الطريقة
+
+اكتب كود {to_lang} احترافي."""}
+        ]
+        
+        messages.extend(history[-2:])
+        
+        prompt = f"""ترجم هذا الكود من {from_lang} إلى {to_lang}:
+
+```{from_lang}
+{source_code}
+```
+
+المطلوب:
+- كود {to_lang} كامل ومعادل
+- نفس الوظائف
+- أفضل الممارسات
+- تعليقات توضيحية
+- أمثلة استخدام"""
+        
+        messages.append({"role": "user", "content": prompt})
+        
+        response = client.chat.completions.create(
+            model="gpt-5",
+            messages=messages,
+            temperature=0.2,
+            max_tokens=4000
+        )
+        
+        translated_code = response.choices[0].message.content
+        
+        # Extract code
+        if '```' in translated_code:
+            parts = translated_code.split('```')
+            if len(parts) >= 3:
+                code_part = parts[1]
+                if code_part.startswith(to_lang.lower()):
+                    code_part = code_part[len(to_lang):].strip()
+                translated_code = code_part
+        
+        filename = f"translated_{to_lang}_{int(time.time())}.txt"
+        generated_content[filename] = translated_code
+        
+        return jsonify({
+            'response': f'🔄 **تمت الترجمة من {from_lang} إلى {to_lang}!**',
+            'type': 'code',
+            'code': translated_code,
+            'filename': filename,
+            'from_language': from_lang,
+            'to_language': to_lang,
+            'history': history[-20:]
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+def one_click_deploy(project_code, project_name, platform, history):
+    """نشر المشروع بضغطة واحدة"""
+    try:
+        # دليل النشر والإعداد
+        deployment_guides = {
+            'vercel': {
+                'name': 'Vercel',
+                'commands': [
+                    'npm install -g vercel',
+                    'vercel login',
+                    'vercel --prod'
+                ],
+                'config': 'vercel.json',
+                'url': 'https://vercel.com'
+            },
+            'netlify': {
+                'name': 'Netlify',
+                'commands': [
+                    'npm install -g netlify-cli',
+                    'netlify login',
+                    'netlify deploy --prod'
+                ],
+                'config': 'netlify.toml',
+                'url': 'https://netlify.com'
+            },
+            'github': {
+                'name': 'GitHub Pages',
+                'commands': [
+                    'git init',
+                    'git add .',
+                    'git commit -m "Initial commit"',
+                    'git branch -M main',
+                    'git push -u origin main'
+                ],
+                'config': '.github/workflows/deploy.yml',
+                'url': 'https://pages.github.com'
+            }
+        }
+        
+        platform_info = deployment_guides.get(platform.lower(), deployment_guides['vercel'])
+        
+        messages = [
+            {"role": "system", "content": f"""أنت خبير DevOps ومختص في النشر على {platform_info['name']}.
+مهمتك:
+1. تجهيز المشروع للنشر
+2. إنشاء ملفات الإعداد المطلوبة
+3. كتابة تعليمات النشر خطوة بخطوة
+4. إضافة environment variables
+5. إعداد CI/CD إن أمكن
+6. نصائح الأمان والأداء
+
+اجعل العملية سهلة وواضحة."""}
+        ]
+        
+        prompt = f"""جهز هذا المشروع للنشر على {platform_info['name']}:
+
+اسم المشروع: {project_name}
+
+الكود:
+```
+{project_code[:1000]}... (مختصر)
+```
+
+المطلوب:
+1. ملفات الإعداد ({platform_info['config']})
+2. package.json (إن لزم)
+3. تعليمات النشر خطوة بخطوة
+4. Environment variables
+5. نصائح مهمة"""
+        
+        messages.append({"role": "user", "content": prompt})
+        
+        response = client.chat.completions.create(
+            model="gpt-5",
+            messages=messages,
+            temperature=0.3,
+            max_tokens=3000
+        )
+        
+        deployment_guide = response.choices[0].message.content
+        
+        # إنشاء دليل شامل
+        full_guide = f"""# 🚀 دليل النشر - {project_name}
+
+## المنصة: {platform_info['name']}
+
+{deployment_guide}
+
+---
+
+## 📋 الأوامر السريعة:
+
+```bash
+{chr(10).join(platform_info['commands'])}
+```
+
+---
+
+## 🔗 روابط مفيدة:
+
+- الموقع الرسمي: {platform_info['url']}
+- التوثيق: {platform_info['url']}/docs
+- الدعم: {platform_info['url']}/support
+
+---
+
+✅ **تم إنشاء دليل النشر بنجاح!**
+"""
+        
+        filename = f"deploy_{platform}_{int(time.time())}.md"
+        generated_content[filename] = full_guide
+        
+        return jsonify({
+            'response': f'🚀 **جاهز للنشر على {platform_info["name"]}!**\n\n{deployment_guide[:500]}...',
+            'type': 'deployment',
+            'guide': full_guide,
+            'filename': filename,
+            'platform': platform_info['name'],
+            'commands': platform_info['commands'],
             'history': history[-20:]
         })
     except Exception as e:
