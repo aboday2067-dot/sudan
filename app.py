@@ -641,9 +641,9 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
         
         <div id="messages"></div>
         
-        <div id="previewArea" style="display:none;"></div>
-        
         <div id="inputArea">
+            <div id="previewArea" style="display:none; padding: 8px 15px; background: rgba(255,255,255,0.95); border-radius: 15px 15px 0 0; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); overflow-x: auto; white-space: nowrap;"></div>
+            
             <div class="input-wrapper">
                 <button class="btn-ultimate btn-image" onclick="uploadImage()" title="رفع صورة">📸</button>
                 <button class="btn-ultimate btn-file" onclick="uploadFile()" title="رفع ملف">📄</button>
@@ -978,8 +978,17 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
                     
                     if (result.type === 'image') {
                         if (result.image_url) {
-                            // صورة نظيفة بدون نصوص
-                            displayMessage = `<div class="media-result" style="text-align: center;"><img src="${result.image_url}" style="max-width: 100%; max-height: 400px; border-radius: 15px; box-shadow: 0 8px 25px rgba(0,0,0,0.15);"></div>`;
+                            // صورة نظيفة مع أزرار
+                            displayMessage = `
+                                <div class="media-result" style="text-align: center;">
+                                    <img src="${result.image_url}" style="max-width: 100%; max-height: 400px; border-radius: 15px; box-shadow: 0 8px 25px rgba(0,0,0,0.15); margin-bottom: 15px;">
+                                    <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
+                                        <button onclick="downloadMedia('${result.image_url}', 'image')" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-weight: bold;">⬇️ تحميل</button>
+                                        <button onclick="shareMedia('${result.image_url}', 'image')" style="background: linear-gradient(135deg, #f093fb, #f5576c); color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-weight: bold;">🔗 مشاركة</button>
+                                        <button onclick="copyMediaUrl('${result.image_url}')" style="background: linear-gradient(135deg, #ffd140, #f5576c); color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-weight: bold;">📋 نسخ الرابط</button>
+                                    </div>
+                                </div>
+                            `;
                         } else if (result.status === 'processing') {
                             displayMessage = `<div class="processing-indicator" style="text-align: center; padding: 30px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 15px;"><div style="font-size: 60px; animation: spin 2s linear infinite;">🎨</div><p style="color: white; margin-top: 15px; font-size: 18px; font-weight: bold;">جاري الرسم...</p></div>`;
                         } else {
@@ -987,8 +996,19 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
                         }
                     } else if (result.type === 'video') {
                         if (result.video_url) {
-                            // فيديو نظيف بدون نصوص
-                            displayMessage = `<div class="media-result" style="text-align: center;"><video controls style="max-width: 100%; max-height: 400px; border-radius: 15px; box-shadow: 0 8px 25px rgba(0,0,0,0.15);"><source src="${result.video_url}" type="video/mp4"></video></div>`;
+                            // فيديو نظيف مع أزرار
+                            displayMessage = `
+                                <div class="media-result" style="text-align: center;">
+                                    <video controls style="max-width: 100%; max-height: 400px; border-radius: 15px; box-shadow: 0 8px 25px rgba(0,0,0,0.15); margin-bottom: 15px;">
+                                        <source src="${result.video_url}" type="video/mp4">
+                                    </video>
+                                    <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
+                                        <button onclick="downloadMedia('${result.video_url}', 'video')" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-weight: bold;">⬇️ تحميل</button>
+                                        <button onclick="shareMedia('${result.video_url}', 'video')" style="background: linear-gradient(135deg, #f093fb, #f5576c); color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-weight: bold;">🔗 مشاركة</button>
+                                        <button onclick="copyMediaUrl('${result.video_url}')" style="background: linear-gradient(135deg, #ffd140, #f5576c); color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-weight: bold;">📋 نسخ الرابط</button>
+                                    </div>
+                                </div>
+                            `;
                         } else if (result.status === 'processing') {
                             displayMessage = `<div class="processing-indicator" style="text-align: center; padding: 30px; background: linear-gradient(135deg, #f093fb, #f5576c); border-radius: 15px;"><div style="font-size: 60px; animation: spin 2s linear infinite;">🎬</div><p style="color: white; margin-top: 15px; font-size: 18px; font-weight: bold;">جاري المونتاج...</p></div>`;
                         } else {
@@ -996,8 +1016,16 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
                         }
                     } else if (result.type === 'audio') {
                         if (result.audio_url) {
-                            // صوت نظيف
-                            displayMessage = `<div class="media-result" style="text-align: center; padding: 20px; background: linear-gradient(135deg, #ffd140, #f5576c); border-radius: 15px;"><audio controls style="width: 100%;"><source src="${result.audio_url}" type="audio/mpeg"></audio></div>`;
+                            // صوت نظيف مع أزرار
+                            displayMessage = `
+                                <div class="media-result" style="text-align: center; padding: 20px; background: linear-gradient(135deg, #ffd140, #f5576c); border-radius: 15px;">
+                                    <audio controls style="width: 100%; margin-bottom: 15px;"><source src="${result.audio_url}" type="audio/mpeg"></audio>
+                                    <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-top: 10px;">
+                                        <button onclick="downloadMedia('${result.audio_url}', 'audio')" style="background: white; color: #ffd140; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-weight: bold;">⬇️ تحميل</button>
+                                        <button onclick="shareMedia('${result.audio_url}', 'audio')" style="background: white; color: #f5576c; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-weight: bold;">🔗 مشاركة</button>
+                                    </div>
+                                </div>
+                            `;
                         } else if (result.status === 'processing') {
                             displayMessage = `<div class="processing-indicator" style="text-align: center; padding: 30px; background: linear-gradient(135deg, #ffd140, #f5576c); border-radius: 15px;"><div style="font-size: 60px; animation: pulse 1.5s ease-in-out infinite;">🎵</div><p style="color: white; margin-top: 15px; font-size: 18px; font-weight: bold;">جاري الإنتاج...</p></div>`;
                         } else {
@@ -1115,6 +1143,43 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
         function previewCode(filename) {
             // معاينة مباشرة عبر endpoint مخصص
             window.open(`/preview/${filename}`, '_blank', 'width=1200,height=800');
+        }
+        
+        
+        function downloadMedia(url, type) {
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `zizo_${type}_${Date.now()}.${type === 'image' ? 'png' : type === 'video' ? 'mp4' : 'mp3'}`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            addMessage('assistant', `✅ تم التحميل بنجاح!`);
+        }
+        
+        async function shareMedia(url, type) {
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: 'زيزو ألتيميت',
+                        text: `${type === 'image' ? 'صورة' : type === 'video' ? 'فيديو' : 'صوت'} من زيزو`,
+                        url: url
+                    });
+                    addMessage('assistant', '✅ تمت المشاركة!');
+                } catch (error) {
+                    copyMediaUrl(url);
+                }
+            } else {
+                copyMediaUrl(url);
+            }
+        }
+        
+        function copyMediaUrl(url) {
+            navigator.clipboard.writeText(url).then(() => {
+                addMessage('assistant', '✅ تم نسخ الرابط!');
+            }).catch(() => {
+                prompt('انسخ الرابط:', url);
+            });
         }
         
         async function speakText(text) {
@@ -2272,8 +2337,35 @@ def preview_file(filename):
     """Preview generated code/website in browser"""
     if filename in generated_content:
         content = generated_content[filename]
-        # تحديد نوع الملف
-        if filename.endswith('.html') or 'website_' in filename:
+        
+        # معالجة JSX/React
+        if filename.endswith('.jsx') or 'app_' in filename:
+            # إنشاء HTML wrapper مع Babel
+            react_html = f'''<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>React App - Zizo</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        body {{ font-family: 'Segoe UI', Tahoma, sans-serif; }}
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+{content}
+    </script>
+</body>
+</html>'''
+            return react_html, 200, {'Content-Type': 'text/html; charset=utf-8'}
+        
+        # تحديد نوع الملف العادي
+        if filename.endswith('.html') or 'website_' in filename or 'painted_' in filename:
             return content, 200, {'Content-Type': 'text/html; charset=utf-8'}
         elif filename.endswith('.js'):
             return content, 200, {'Content-Type': 'application/javascript; charset=utf-8'}
