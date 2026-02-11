@@ -1137,6 +1137,60 @@ def ultimate():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/analyze-fix', methods=['POST'])
+def analyze_fix():
+    """تحليل وإصلاح الأخطاء"""
+    try:
+        data = request.json
+        code = data.get('code', '')
+        error_message = data.get('error', 'لا يعمل بشكل صحيح')
+        history = data.get('history', [])
+        
+        return analyze_and_fix_code(code, error_message, history)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/complete-code', methods=['POST'])
+def complete():
+    """إكمال الكود تلقائياً"""
+    try:
+        data = request.json
+        partial_code = data.get('code', '')
+        language = data.get('language', 'javascript')
+        description = data.get('description', '')
+        history = data.get('history', [])
+        
+        return complete_code(partial_code, language, description, history)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/add-integration', methods=['POST'])
+def integrate():
+    """إضافة تكامل"""
+    try:
+        data = request.json
+        project_code = data.get('code', '')
+        integration_type = data.get('type', 'api')  # auth, database, payment, etc.
+        api_details = data.get('details', '')
+        history = data.get('history', [])
+        
+        return add_integration(project_code, integration_type, api_details, history)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/smart-suggest', methods=['POST'])
+def suggest():
+    """اقتراحات ذكية"""
+    try:
+        data = request.json
+        project_description = data.get('description', '')
+        current_code = data.get('code', '')
+        history = data.get('history', [])
+        
+        return smart_suggest(project_description, current_code, history)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 def chat_mode(user_message, files, history):
     """Chat with GPT-5"""
     content = []
@@ -1352,20 +1406,69 @@ def generate_audio_real(prompt):
         return jsonify({'error': str(e)}), 500
 
 def generate_code(prompt, history):
-    """Generate code"""
+    """Generate code with smart detection"""
     try:
-        messages = [
-            {"role": "system", "content": "أنت مبرمج خبير. اكتب كود نظيف واحترافي."}
-        ]
+        # Smart detection - اكتشاف ذكي للمطلوب
+        prompt_lower = prompt.lower()
         
+        # كلمات مفتاحية للإصلاح
+        fix_keywords = ['أصلح', 'اصلح', 'خطأ', 'مشكلة', 'fix', 'error', 'bug', 'debug']
+        # كلمات مفتاحية للإكمال
+        complete_keywords = ['أكمل', 'اكمل', 'complete', 'finish', 'ناقص']
+        # كلمات مفتاحية للتكامل
+        integration_keywords = ['أضف', 'اضف', 'تكامل', 'add', 'integrate', 'api', 'database', 'auth']
+        
+        # اكتشاف الوضع
+        if any(keyword in prompt_lower for keyword in fix_keywords):
+            # وضع الإصلاح
+            system_prompt = """أنت مطور خبير متخصص في إصلاح الأخطاء.
+قم بـ:
+1. تحليل الكود
+2. اكتشاف جميع الأخطاء (Syntax, Logic, Runtime, Security)
+3. إصلاحها بشكل احترافي
+4. إضافة تعليقات توضيحية
+5. تحسين الأداء
+6. شرح ما تم إصلاحه"""
+        elif any(keyword in prompt_lower for keyword in complete_keywords):
+            # وضع الإكمال
+            system_prompt = """أنت مطور خبير متخصص في إكمال الأكواد.
+قم بـ:
+1. فهم السياق والهدف
+2. إكمال جميع الوظائف الناقصة
+3. إضافة معالجة الأخطاء
+4. إضافة التعليقات
+5. كتابة أمثلة استخدام
+6. التأكد من جودة الكود"""
+        elif any(keyword in prompt_lower for keyword in integration_keywords):
+            # وضع التكامل
+            system_prompt = """أنت مطور Full-Stack خبير متخصص في التكامل.
+قم بـ:
+1. إضافة التكامل المطلوب (API, Database, Auth, etc.)
+2. التأكد من الأمان
+3. معالجة الأخطاء بشكل كامل
+4. إضافة تعليقات توضيحية
+5. كتابة أمثلة استخدام
+6. اتباع أفضل الممارسات"""
+        else:
+            # وضع الإنشاء العادي
+            system_prompt = """أنت مبرمج خبير محترف.
+اكتب كود:
+- نظيف ومنظم
+- موثق بالتعليقات
+- يتبع أفضل الممارسات
+- آمن وفعّال
+- سهل الصيانة
+- جاهز للإنتاج"""
+        
+        messages = [{"role": "system", "content": system_prompt}]
         messages.extend(history[-5:])
-        messages.append({"role": "user", "content": f"اكتب كود كامل لـ: {prompt}"})
+        messages.append({"role": "user", "content": prompt})
         
         response = client.chat.completions.create(
             model="gpt-5",
             messages=messages,
             temperature=0.3,
-            max_tokens=3000
+            max_tokens=4000
         )
         
         code_response = response.choices[0].message.content
@@ -1375,7 +1478,11 @@ def generate_code(prompt, history):
             parts = code.split('```')
             if len(parts) >= 3:
                 code = parts[1]
-                for lang in ['python', 'javascript', 'html', 'css', 'java', 'cpp']:
+                # دعم جميع اللغات
+                languages = ['python', 'javascript', 'html', 'css', 'java', 'cpp', 'c++', 
+                           'jsx', 'tsx', 'php', 'ruby', 'go', 'rust', 'swift', 'kotlin',
+                           'typescript', 'sql', 'bash', 'shell', 'yaml', 'json']
+                for lang in languages:
                     if code.startswith(lang):
                         code = code[len(lang):]
                         break
@@ -1471,6 +1578,260 @@ def generate_app(prompt, history):
             'type': 'code',
             'code': code,
             'filename': filename,
+            'history': history[-20:]
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+def analyze_and_fix_code(code, error_message, history):
+    """تحليل وإصلاح الأخطاء في الكود"""
+    try:
+        messages = [
+            {"role": "system", "content": """أنت مطور خبير ومحلل أكواد محترف.
+مهمتك:
+1. تحليل الكود المُرسل
+2. اكتشاف الأخطاء (Syntax, Logic, Performance, Security)
+3. إصلاح الأخطاء
+4. اقتراح تحسينات
+5. إضافة تعليقات توضيحية
+6. تحسين الأداء والأمان
+
+قدّم:
+- الكود المُصلح كاملاً
+- شرح الأخطاء
+- قائمة التحسينات
+"""}
+        ]
+        
+        messages.extend(history[-3:])
+        
+        prompt = f"""الكود التالي به مشكلة:
+
+```
+{code}
+```
+
+الخطأ: {error_message}
+
+حلل الكود واكتشف جميع الأخطاء وأصلحها وحسّنه."""
+        
+        messages.append({"role": "user", "content": prompt})
+        
+        response = client.chat.completions.create(
+            model="gpt-5",
+            messages=messages,
+            temperature=0.2,
+            max_tokens=4000
+        )
+        
+        fixed_code = response.choices[0].message.content
+        
+        # Extract code
+        if '```' in fixed_code:
+            parts = fixed_code.split('```')
+            if len(parts) >= 3:
+                code_part = parts[1]
+                for lang in ['python', 'javascript', 'html', 'css', 'java', 'cpp', 'jsx', 'tsx']:
+                    if code_part.startswith(lang):
+                        code_part = code_part[len(lang):].strip()
+                        break
+                fixed_code = code_part
+        
+        filename = f"fixed_code_{int(time.time())}.txt"
+        generated_content[filename] = fixed_code
+        
+        return jsonify({
+            'response': '🔧 **تم تحليل وإصلاح الكود!**',
+            'type': 'code',
+            'code': fixed_code,
+            'filename': filename,
+            'analysis': response.choices[0].message.content,
+            'history': history[-20:]
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+def complete_code(partial_code, language, description, history):
+    """إكمال الكود تلقائياً"""
+    try:
+        messages = [
+            {"role": "system", "content": f"""أنت مطور خبير في {language}.
+مهمتك إكمال الكود الناقص بشكل احترافي:
+1. فهم السياق
+2. إكمال الوظائف الناقصة
+3. إضافة التعامل مع الأخطاء
+4. إضافة التعليقات
+5. تحسين الأداء
+6. إضافة أمثلة الاستخدام
+
+اكتب كود نظيف واحترافي."""}
+        ]
+        
+        messages.extend(history[-3:])
+        
+        prompt = f"""الكود التالي ناقص:
+
+```{language}
+{partial_code}
+```
+
+الوصف: {description}
+
+أكمل الكود بشكل احترافي."""
+        
+        messages.append({"role": "user", "content": prompt})
+        
+        response = client.chat.completions.create(
+            model="gpt-5",
+            messages=messages,
+            temperature=0.3,
+            max_tokens=4000
+        )
+        
+        completed_code = response.choices[0].message.content
+        
+        # Extract code
+        if '```' in completed_code:
+            parts = completed_code.split('```')
+            if len(parts) >= 3:
+                code_part = parts[1]
+                for lang in ['python', 'javascript', 'html', 'css', 'java', 'cpp', 'jsx', 'tsx', 'php', 'ruby', 'go', 'rust']:
+                    if code_part.startswith(lang):
+                        code_part = code_part[len(lang):].strip()
+                        break
+                completed_code = code_part
+        
+        filename = f"completed_{language}_{int(time.time())}.txt"
+        generated_content[filename] = completed_code
+        
+        return jsonify({
+            'response': '✨ **تم إكمال الكود!**',
+            'type': 'code',
+            'code': completed_code,
+            'filename': filename,
+            'history': history[-20:]
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+def add_integration(project_code, integration_type, api_details, history):
+    """إضافة تكامل APIs ومصادقة"""
+    try:
+        integration_prompts = {
+            'auth': "أضف نظام مصادقة كامل (Login, Register, JWT, Session Management)",
+            'database': "أضف تكامل قاعدة بيانات (MongoDB/PostgreSQL/MySQL)",
+            'payment': "أضف تكامل بوابة دفع (Stripe/PayPal)",
+            'email': "أضف خدمة إرسال بريد إلكتروني (SendGrid/Nodemailer)",
+            'storage': "أضف تخزين ملفات (AWS S3/Firebase Storage)",
+            'api': f"أضف تكامل API: {api_details}",
+            'social': "أضف تسجيل دخول عبر وسائل التواصل (Google, Facebook, GitHub)",
+            'realtime': "أضف تواصل فوري (WebSocket/Socket.io)",
+            'analytics': "أضف تتبع تحليلات (Google Analytics/Mixpanel)",
+            'security': "أضف طبقات أمان (CORS, Rate Limiting, Input Validation, XSS Protection)"
+        }
+        
+        messages = [
+            {"role": "system", "content": f"""أنت مطور Full-Stack خبير متخصص في التكامل والأمان.
+مهمتك:
+1. فحص الكود الموجود
+2. إضافة {integration_type} بشكل احترافي
+3. التأكد من الأمان
+4. إضافة معالجة الأخطاء
+5. كتابة تعليقات توضيحية
+6. توفير أمثلة استخدام
+
+اكتب كود production-ready."""}
+        ]
+        
+        messages.extend(history[-2:])
+        
+        integration_desc = integration_prompts.get(integration_type, f"أضف تكامل {integration_type}")
+        
+        prompt = f"""الكود الحالي:
+
+```
+{project_code}
+```
+
+المطلوب: {integration_desc}
+
+التفاصيل: {api_details}
+
+أضف التكامل الكامل مع أفضل الممارسات."""
+        
+        messages.append({"role": "user", "content": prompt})
+        
+        response = client.chat.completions.create(
+            model="gpt-5",
+            messages=messages,
+            temperature=0.2,
+            max_tokens=5000
+        )
+        
+        integrated_code = response.choices[0].message.content
+        
+        filename = f"integrated_{integration_type}_{int(time.time())}.txt"
+        generated_content[filename] = integrated_code
+        
+        return jsonify({
+            'response': f'🔗 **تم إضافة {integration_type} بنجاح!**',
+            'type': 'code',
+            'code': integrated_code,
+            'filename': filename,
+            'integration_type': integration_type,
+            'history': history[-20:]
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+def smart_suggest(project_description, current_code, history):
+    """اقتراحات ذكية وابتكارية"""
+    try:
+        messages = [
+            {"role": "system", "content": """أنت مستشار تقني ومبتكر خبير.
+مهمتك:
+1. تحليل المشروع الحالي
+2. اكتشاف الفجوات والفرص
+3. اقتراح ميزات جديدة
+4. توصيات للأداء والأمان
+5. أفكار إبداعية للتطوير
+6. خطة تنفيذ تفصيلية
+
+كن مبتكراً واقترح حلول عملية."""}
+        ]
+        
+        messages.extend(history[-3:])
+        
+        prompt = f"""المشروع:
+{project_description}
+
+الكود الحالي:
+```
+{current_code if current_code else 'لا يوجد كود بعد'}
+```
+
+حلل المشروع واقترح:
+1. ميزات جديدة مبتكرة
+2. تحسينات للأداء
+3. إضافات للأمان
+4. تكاملات مفيدة
+5. خطة تنفيذ"""
+        
+        messages.append({"role": "user", "content": prompt})
+        
+        response = client.chat.completions.create(
+            model="gpt-5",
+            messages=messages,
+            temperature=0.7,
+            max_tokens=3000
+        )
+        
+        suggestions = response.choices[0].message.content
+        
+        return jsonify({
+            'response': f'💡 **اقتراحات ذكية:**\n\n{suggestions}',
+            'type': 'suggestion',
+            'suggestions': suggestions,
             'history': history[-20:]
         })
     except Exception as e:
