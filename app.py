@@ -1063,22 +1063,43 @@ def generate_image_dalle(prompt):
         })
 
 def generate_video_real(prompt):
-    """Generate video using AI Generation API"""
+    """Generate video using Replicate API"""
     try:
+        if not REPLICATE_ENABLED:
+            return jsonify({
+                'response': f'🎬 **توليد الفيديو غير مفعّل**\\n\\n**الوصف:** {prompt}\\n\\n**ملاحظة:** لتفعيل التوليد، أضف Replicate API Token في الإعدادات.',
+                'type': 'video',
+                'status': 'disabled',
+                'history': []
+            })
+        
+        # Use Replicate Zeroscope for video generation
+        output = replicate.run(
+            "anotherjesse/zeroscope-v2-xl:9f747673945c62801b13b84701c783929c0ee784e4748ec062204894dda1a351",
+            input={
+                "prompt": prompt,
+                "num_frames": 24,
+                "num_inference_steps": 50
+            }
+        )
+        
+        video_url = output
+        
         stats['generated_videos'] += 1
         
-        # Call video generation API
-        # For actual implementation, use the video_generation tool
-        
         return jsonify({
-            'response': f'🎬 **تم بدء توليد الفيديو!**\\n\\n**الوصف:** {prompt}\\n\\n**النموذج:** Gemini Veo 3.1 (أحدث نموذج)\\n**المدة:** 8 ثوانية\\n**الدقة:** 1080p\\n**الحالة:** جاري المعالجة...\\n\\n**ملاحظة:** توليد الفيديو يستغرق 2-4 دقائق. الفيديو سيظهر هنا فور الانتهاء!',
+            'response': f'🎬 **تم توليد الفيديو بنجاح!**\\n\\n**الوصف:** {prompt}\\n**المدة:** ~3 ثوان\\n**النموذج:** Zeroscope V2 XL',
             'type': 'video',
-            'status': 'processing',
-            'prompt': prompt,
+            'video_url': video_url,
+            'status': 'success',
             'history': []
         })
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({
+            'response': f'❌ **خطأ في توليد الفيديو**\\n\\n**الخطأ:** {str(e)}\\n\\n**الوصف:** {prompt}\\n\\n**نصيحة:** تأكد من صحة Replicate API Token',
+            'type': 'error',
+            'history': []
+        })
 
 def generate_audio_real(prompt):
     """Generate audio/music using AI Generation API"""
