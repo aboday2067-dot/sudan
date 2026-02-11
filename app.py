@@ -302,25 +302,30 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
         
         .input-wrapper {
             display: flex;
-            gap: 4px;
+            gap: 5px;
             align-items: center;
-            justify-content: space-between;
+            flex-wrap: nowrap;
         }
         
         /* ULTIMATE BUTTONS */
         .btn-ultimate {
-            width: 44px !important;
-            height: 44px !important;
+            min-width: 40px !important;
+            max-width: 40px !important;
+            width: 40px !important;
+            min-height: 40px !important;
+            max-height: 40px !important;
+            height: 40px !important;
             border-radius: 50% !important;
             border: none;
-            font-size: 20px;
+            font-size: 18px;
             cursor: pointer;
             transition: all 0.3s;
             box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            display: flex;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
+            flex-grow: 0;
         }
         
         .btn-image {
@@ -347,8 +352,13 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
         
         .btn-send {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-            width: 48px !important;
-            height: 48px !important;
+            min-width: 45px !important;
+            max-width: 45px !important;
+            width: 45px !important;
+            min-height: 45px !important;
+            max-height: 45px !important;
+            height: 45px !important;
+            font-size: 20px !important;
         }
         
         .btn-ultimate:active {
@@ -356,16 +366,16 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
         }
         
         #userInput {
-            flex: 1;
+            flex: 0 1 auto;
+            width: calc(100% - 200px);
             border: 2px solid #667eea;
-            border-radius: 24px;
-            padding: 10px 16px;
+            border-radius: 22px;
+            padding: 8px 14px;
             font-size: 14px;
             outline: none;
             background: #f8f9ff;
-            min-height: 44px;
-            max-height: 44px;
-            resize: none;
+            height: 40px;
+            line-height: 24px;
         }
         
         #userInput:focus {
