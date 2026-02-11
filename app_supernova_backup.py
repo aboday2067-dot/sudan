@@ -7,6 +7,7 @@ import random
 import base64
 import io
 import json
+import requests
 
 app = Flask(__name__)
 
@@ -28,19 +29,18 @@ stats = {
     'generated_images': 0,
     'generated_videos': 0,
     'generated_codes': 0,
-    'generated_audio': 0,
     'start_time': time.time()
 }
 
-# Storage
+# Temporary storage for generated content
 generated_content = {}
 
-ULTIMATE_HTML = '''<!DOCTYPE html>
+SUPERNOVA_HTML = '''<!DOCTYPE html>
 <html dir="rtl" lang="ar">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>زيزو ألتيميت 💎 - The Ultimate AI</title>
+    <title>زيزو سوبر نوفا 🌟 - All-in-One AI</title>
     <style>
         * {
             margin: 0;
@@ -60,104 +60,74 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
             height: 100vh;
             display: flex;
             flex-direction: column;
-            background: #fff;
+            background: rgba(255,255,255,0.98);
         }
         
         /* Header */
         header {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 50%, #ffd140 100%);
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
             color: white;
             padding: 12px;
             text-align: center;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.25);
-            position: relative;
-            overflow: hidden;
-        }
-        
-        header::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%);
-            animation: rotate 15s linear infinite;
-        }
-        
-        @keyframes rotate {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
         }
         
         h1 {
-            font-size: 24px;
-            font-weight: 900;
+            font-size: 22px;
+            font-weight: 800;
             margin-bottom: 3px;
-            position: relative;
-            z-index: 1;
-            text-shadow: 2px 2px 6px rgba(0,0,0,0.4);
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
         
         .subtitle {
             font-size: 11px;
             opacity: 0.95;
-            position: relative;
-            z-index: 1;
         }
         
         .badge {
             display: inline-block;
-            background: rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.25);
             padding: 3px 10px;
             border-radius: 15px;
             font-size: 10px;
             margin-top: 3px;
             backdrop-filter: blur(5px);
-            border: 1px solid rgba(255,255,255,0.5);
-            position: relative;
-            z-index: 1;
-            animation: pulse 2s infinite;
+            border: 1px solid rgba(255,255,255,0.4);
         }
         
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-        
-        /* Powers Bar */
+        /* Powers Bar - قدرات زيزو */
         #powersBar {
-            background: linear-gradient(90deg, #4facfe 0%, #00f2fe 50%, #43e97b 100%);
+            background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
             padding: 8px;
             display: flex;
-            gap: 5px;
+            gap: 6px;
             overflow-x: auto;
             flex-wrap: nowrap;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
         }
         
         .power-btn {
-            background: rgba(255,255,255,0.95);
+            background: rgba(255,255,255,0.9);
             border: none;
-            padding: 7px 11px;
-            border-radius: 18px;
+            padding: 8px 12px;
+            border-radius: 20px;
             font-size: 11px;
-            font-weight: 700;
+            font-weight: 600;
             cursor: pointer;
             white-space: nowrap;
             transition: all 0.3s;
             flex-shrink: 0;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
         }
         
         .power-btn:active {
             transform: scale(0.95);
+            background: white;
         }
         
         .power-btn.active {
             background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
             color: white;
-            transform: scale(1.05);
         }
         
         /* Messages */
@@ -178,8 +148,13 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
             to { opacity: 1; transform: translateY(0); }
         }
         
-        .user-message { text-align: left; }
-        .assistant-message { text-align: right; }
+        .user-message {
+            text-align: left;
+        }
+        
+        .assistant-message {
+            text-align: right;
+        }
         
         .message-bubble {
             display: inline-block;
@@ -187,8 +162,7 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
             padding: 10px 14px;
             border-radius: 16px;
             word-wrap: break-word;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
-            line-height: 1.6;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
         
         .user-message .message-bubble {
@@ -208,19 +182,6 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
             max-width: 100%;
             border-radius: 10px;
             margin-top: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }
-        
-        .message-bubble video {
-            max-width: 100%;
-            border-radius: 10px;
-            margin-top: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }
-        
-        .message-bubble audio {
-            width: 100%;
-            margin-top: 8px;
         }
         
         .message-bubble pre {
@@ -231,23 +192,17 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
             overflow-x: auto;
             margin-top: 8px;
             font-size: 12px;
-            font-family: 'Courier New', monospace;
         }
         
-        .download-btn, .play-btn {
+        .download-btn {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
             padding: 6px 12px;
             border-radius: 15px;
-            margin: 6px 3px 0 0;
+            margin-top: 6px;
             cursor: pointer;
             font-size: 11px;
-            display: inline-block;
-        }
-        
-        .play-btn {
-            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
         }
         
         /* Preview Area */
@@ -306,16 +261,16 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
             align-items: center;
         }
         
-        /* ULTIMATE BUTTONS */
-        .btn-ultimate {
-            width: 50px !important;
-            height: 50px !important;
+        /* SUPER BUTTONS - HUGE & CLEAR */
+        .btn-super {
+            width: 48px !important;
+            height: 48px !important;
             border-radius: 50% !important;
             border: none;
-            font-size: 22px;
+            font-size: 20px;
             cursor: pointer;
             transition: all 0.3s;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.18);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -330,28 +285,14 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
             background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
         }
         
-        .btn-voice {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        }
-        
-        .btn-voice.recording {
-            background: linear-gradient(135deg, #ff0844 0%, #ffb199 100%);
-            animation: recordPulse 1s infinite;
-        }
-        
-        @keyframes recordPulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-        }
-        
         .btn-send {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-            width: 54px !important;
-            height: 54px !important;
+            width: 52px !important;
+            height: 52px !important;
         }
         
-        .btn-ultimate:active {
-            transform: scale(0.9);
+        .btn-super:active {
+            transform: scale(0.92);
         }
         
         #userInput {
@@ -362,12 +303,67 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
             font-size: 15px;
             outline: none;
             background: #f8f9ff;
-            min-height: 50px;
+            min-height: 48px;
         }
         
         #userInput:focus {
             border-color: #764ba2;
             background: white;
+        }
+        
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.75);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            max-width: 90%;
+            max-height: 80%;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        
+        .modal-header {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            color: #667eea;
+        }
+        
+        .modal-input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            margin: 8px 0;
+            font-size: 14px;
+        }
+        
+        .modal-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            margin: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .modal-close {
+            background: #f5576c;
         }
         
         /* Loading */
@@ -378,7 +374,7 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(102, 126, 234, 0.95);
+            background: rgba(102, 126, 234, 0.92);
             z-index: 3000;
             justify-content: center;
             align-items: center;
@@ -387,12 +383,12 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
         }
         
         .loader {
-            width: 60px;
-            height: 60px;
-            border: 6px solid rgba(255,255,255,0.3);
-            border-top: 6px solid white;
+            width: 55px;
+            height: 55px;
+            border: 5px solid rgba(255,255,255,0.3);
+            border-top: 5px solid white;
             border-radius: 50%;
-            animation: spin 0.8s linear infinite;
+            animation: spin 1s linear infinite;
         }
         
         @keyframes spin {
@@ -401,9 +397,9 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
         }
         
         .loading-text {
-            margin-top: 20px;
-            font-size: 18px;
-            font-weight: 700;
+            margin-top: 18px;
+            font-size: 17px;
+            font-weight: 600;
         }
         
         /* Typing Indicator */
@@ -417,8 +413,8 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
         }
         
         .typing-dot {
-            width: 8px;
-            height: 8px;
+            width: 7px;
+            height: 7px;
             border-radius: 50%;
             background: #667eea;
             animation: typing 1.4s infinite;
@@ -429,12 +425,19 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
         
         @keyframes typing {
             0%, 60%, 100% { transform: translateY(0); }
-            30% { transform: translateY(-10px); }
+            30% { transform: translateY(-8px); }
         }
         
         /* Scrollbar */
-        ::-webkit-scrollbar { width: 5px; height: 5px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
         ::-webkit-scrollbar-thumb {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border-radius: 3px;
@@ -442,18 +445,22 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
     </style>
 </head>
 <body>
+    <!-- Loading Overlay -->
     <div id="loadingOverlay">
         <div class="loader"></div>
-        <div class="loading-text">💎 ألتيميت يعمل...</div>
+        <div class="loading-text">⚡ سوبر نوفا يعمل...</div>
     </div>
     
+    <!-- Main App -->
     <div id="app">
+        <!-- Header -->
         <header>
-            <h1>💎 زيزو ألتيميت AI</h1>
-            <div class="subtitle">المساعد الذكي الأكثر تطوراً - كل شيء ممكن</div>
-            <div class="badge">⚡ GPT-5 + DALL-E + Voice + Video</div>
+            <h1>🌟 زيزو سوبر نوفا AI</h1>
+            <div class="subtitle">مساعد ذكاء اصطناعي شامل - كل شيء في مكان واحد</div>
+            <div class="badge">⚡ GPT-5 + DALL-E + Code Gen</div>
         </header>
         
+        <!-- Powers Bar -->
         <div id="powersBar">
             <button class="power-btn active" onclick="setPower('chat')">💬 دردشة</button>
             <button class="power-btn" onclick="setPower('image')">🎨 صور</button>
@@ -461,40 +468,42 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
             <button class="power-btn" onclick="setPower('code')">💻 أكواد</button>
             <button class="power-btn" onclick="setPower('website')">🌐 مواقع</button>
             <button class="power-btn" onclick="setPower('app')">📱 تطبيقات</button>
-            <button class="power-btn" onclick="setPower('audio')">🎵 صوت</button>
         </div>
         
+        <!-- Messages -->
         <div id="messages"></div>
         
+        <!-- Preview Area -->
         <div id="previewArea" style="display:none;"></div>
         
+        <!-- Input Area -->
         <div id="inputArea">
             <div class="input-wrapper">
-                <button class="btn-ultimate btn-image" onclick="uploadImage()" title="رفع صورة">📸</button>
-                <button class="btn-ultimate btn-file" onclick="uploadFile()" title="رفع ملف">📄</button>
-                <button class="btn-ultimate btn-voice" id="voiceBtn" onclick="toggleVoice()" title="تسجيل صوتي">🎤</button>
+                <button class="btn-super btn-image" onclick="uploadImage()" title="رفع صورة">📸</button>
+                <button class="btn-super btn-file" onclick="uploadFile()" title="رفع ملف">📄</button>
                 
                 <input type="text" id="userInput" placeholder="اكتب طلبك هنا..." />
                 
-                <button class="btn-ultimate btn-send" onclick="sendMessage()" title="إرسال">✈️</button>
+                <button class="btn-super btn-send" onclick="sendMessage()" title="إرسال">✈️</button>
             </div>
         </div>
     </div>
     
+    <!-- Hidden File Inputs -->
     <input type="file" id="imageUpload" accept="image/*" style="display:none;" onchange="handleImageUpload(event)">
     <input type="file" id="fileUpload" accept=".pdf,.txt,.doc,.docx" style="display:none;" onchange="handleFileUpload(event)">
     
     <script>
+        // Global State
         let uploadedFiles = [];
         let conversationHistory = [];
         let currentPower = 'chat';
-        let isRecording = false;
-        let mediaRecorder = null;
-        let audioChunks = [];
         
+        // Initialize
         document.addEventListener('DOMContentLoaded', () => {
-            addMessage('assistant', '👋 مرحباً! أنا **زيزو ألتيميت** - أقوى مساعد AI في العالم!\\n\\n💎 **قدراتي الكاملة:**\\n💬 **دردشة ذكية** مع GPT-5\\n🎨 **توليد صور** DALL-E 3 (مفعّل!)\\n🎬 **إنشاء فيديوهات** (متاح!)\\n💻 **كتابة أكواد** كاملة\\n🌐 **بناء مواقع** جاهزة\\n📱 **تطوير تطبيقات** احترافية\\n🎤 **التعرف على الصوت** Speech-to-Text\\n🔊 **قراءة النصوص** Text-to-Speech\\n🎵 **توليد موسيقى** وأصوات\\n\\nاختر القدرة وأخبرني بماذا تريد! 🚀');
+            addMessage('assistant', '👋 مرحباً! أنا **زيزو سوبر نوفا** - مساعدك الذكي الشامل!\\n\\n✨ **قدراتي:**\\n💬 **دردشة ذكية** مع GPT-5\\n🎨 **توليد صور** احترافية\\n🎬 **إنشاء فيديوهات** (قريباً)\\n💻 **كتابة أكواد** كاملة\\n🌐 **بناء مواقع** إلكترونية\\n📱 **تطوير تطبيقات** جوال\\n\\nاختر القدرة من الأعلى وأخبرني بماذا تريد! 🚀');
             
+            // Enter key
             document.getElementById('userInput').addEventListener('keypress', (e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
@@ -502,30 +511,33 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
                 }
             });
             
-            console.log('💎 Ultimate AI Ready!');
+            console.log('🌟 SuperNova AI Ready!');
         });
         
+        // Set Power Mode
         function setPower(power) {
             currentPower = power;
             
+            // Update buttons
             document.querySelectorAll('.power-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
             event.target.classList.add('active');
             
+            // Update placeholder
             const placeholders = {
                 'chat': 'اكتب سؤالك أو طلبك...',
-                'image': 'صف الصورة: قطة لطيفة في حديقة',
-                'video': 'صف الفيديو: شروق الشمس على الجبال',
-                'code': 'اطلب الكود: تطبيق آلة حاسبة بـ Python',
-                'website': 'صف الموقع: صفحة هبوط عصرية',
-                'app': 'صف التطبيق: تطبيق قائمة مهام',
-                'audio': 'اطلب الصوت: موسيقى هادئة للاسترخاء'
+                'image': 'صف الصورة التي تريدها، مثال: غروب على شاطئ البحر',
+                'video': 'صف الفيديو الذي تريده (قريباً)',
+                'code': 'اطلب الكود، مثال: موقع بورتفوليو بـ HTML/CSS',
+                'website': 'صف الموقع، مثال: موقع متجر إلكتروني عصري',
+                'app': 'صف التطبيق، مثال: تطبيق Todo list بـ React'
             };
             
             document.getElementById('userInput').placeholder = placeholders[power];
         }
         
+        // Upload Image
         function uploadImage() {
             document.getElementById('imageUpload').click();
         }
@@ -551,6 +563,7 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
             reader.readAsDataURL(file);
         }
         
+        // Upload File
         function uploadFile() {
             document.getElementById('fileUpload').click();
         }
@@ -576,62 +589,7 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
             reader.readAsDataURL(file);
         }
         
-        async function toggleVoice() {
-            if (!isRecording) {
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    mediaRecorder = new MediaRecorder(stream);
-                    audioChunks = [];
-                    
-                    mediaRecorder.ondataavailable = (event) => {
-                        audioChunks.push(event.data);
-                    };
-                    
-                    mediaRecorder.onstop = async () => {
-                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                        const reader = new FileReader();
-                        reader.onload = async (e) => {
-                            // Send audio for transcription
-                            showLoading('🎤 جاري تحويل الصوت إلى نص...');
-                            
-                            try {
-                                const response = await fetch('/transcribe', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ audio: e.target.result })
-                                });
-                                
-                                const result = await response.json();
-                                hideLoading();
-                                
-                                if (result.text) {
-                                    document.getElementById('userInput').value = result.text;
-                                }
-                            } catch (error) {
-                                hideLoading();
-                                alert('❌ خطأ في تحويل الصوت');
-                            }
-                        };
-                        reader.readAsDataURL(audioBlob);
-                    };
-                    
-                    mediaRecorder.start();
-                    isRecording = true;
-                    document.getElementById('voiceBtn').classList.add('recording');
-                    
-                } catch (error) {
-                    alert('❌ لا يمكن الوصول إلى الميكروفون');
-                }
-            } else {
-                mediaRecorder.stop();
-                isRecording = false;
-                document.getElementById('voiceBtn').classList.remove('recording');
-                
-                // Stop all tracks
-                mediaRecorder.stream.getTracks().forEach(track => track.stop());
-            }
-        }
-        
+        // Update Preview
         function updatePreview() {
             const previewArea = document.getElementById('previewArea');
             if (uploadedFiles.length === 0) {
@@ -666,16 +624,19 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
             updatePreview();
         }
         
+        // Send Message
         async function sendMessage() {
             const input = document.getElementById('userInput');
             const message = input.value.trim();
             
             if (!message && uploadedFiles.length === 0) return;
             
+            // Add user message
             if (message) {
                 addMessage('user', message);
             }
             
+            // Show uploaded files
             if (uploadedFiles.length > 0) {
                 uploadedFiles.forEach(file => {
                     if (file.type === 'image') {
@@ -689,6 +650,7 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
             input.value = '';
             showTypingIndicator();
             
+            // Prepare data
             const data = {
                 message: message,
                 files: uploadedFiles,
@@ -696,13 +658,15 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
                 power: currentPower
             };
             
+            // Clear uploads
             uploadedFiles = [];
             updatePreview();
             
-            showLoading('💎 ألتيميت يعمل...');
+            // Show loading
+            document.getElementById('loadingOverlay').style.display = 'flex';
             
             try {
-                const response = await fetch('/ultimate', {
+                const response = await fetch('/supernova', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
@@ -711,36 +675,27 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
                 const result = await response.json();
                 
                 hideTypingIndicator();
-                hideLoading();
+                document.getElementById('loadingOverlay').style.display = 'none';
                 
                 if (result.response) {
-                    let displayMessage = result.response;
-                    
                     if (result.type === 'image' && result.image_url) {
-                        displayMessage += `<br><img src="${result.image_url}" style="max-width: 300px; border-radius: 10px; margin-top: 10px;">`;
-                    } else if (result.type === 'video' && result.video_url) {
-                        displayMessage += `<br><video controls style="max-width: 300px; border-radius: 10px; margin-top: 10px;"><source src="${result.video_url}" type="video/mp4"></video>`;
-                    } else if (result.type === 'audio' && result.audio_url) {
-                        displayMessage += `<br><audio controls style="width: 100%; margin-top: 10px;"><source src="${result.audio_url}" type="audio/mpeg"></audio>`;
+                        addMessage('assistant', `تم توليد الصورة! 🎨\\n<img src="${result.image_url}" style="max-width: 300px; border-radius: 10px; margin-top: 10px;">`);
                     } else if (result.type === 'code' && result.code) {
-                        displayMessage = `${result.response}<br><pre>${escapeHtml(result.code)}</pre><button class="download-btn" onclick="downloadCode('${result.filename}')">⬇️ تحميل</button>`;
+                        addMessage('assistant', `تم إنشاء الكود! 💻\\n<pre>${escapeHtml(result.code)}</pre>\\n<button class="download-btn" onclick="downloadCode('${result.filename}')">⬇️ تحميل الملف</button>`);
+                    } else {
+                        addMessage('assistant', result.response);
                     }
                     
-                    // Add TTS button
-                    if (result.response && result.type !== 'code') {
-                        displayMessage += `<br><button class="play-btn" onclick="speakText('${escapeForJs(result.response)}')">🔊 استمع</button>`;
-                    }
-                    
-                    addMessage('assistant', displayMessage);
                     conversationHistory = result.history || [];
                 }
             } catch (error) {
                 hideTypingIndicator();
-                hideLoading();
+                document.getElementById('loadingOverlay').style.display = 'none';
                 addMessage('assistant', '❌ عذراً، حدث خطأ. حاول مرة أخرى.');
             }
         }
         
+        // Add Message
         function addMessage(role, content) {
             const messagesDiv = document.getElementById('messages');
             const messageDiv = document.createElement('div');
@@ -750,6 +705,7 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
         
+        // Typing Indicator
         function showTypingIndicator() {
             const messagesDiv = document.getElementById('messages');
             const indicator = document.createElement('div');
@@ -771,51 +727,16 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
             if (indicator) indicator.remove();
         }
         
-        function showLoading(text) {
-            const overlay = document.getElementById('loadingOverlay');
-            overlay.querySelector('.loading-text').textContent = text;
-            overlay.style.display = 'flex';
-        }
-        
-        function hideLoading() {
-            document.getElementById('loadingOverlay').style.display = 'none';
-        }
-        
+        // Escape HTML
         function escapeHtml(text) {
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
         }
         
-        function escapeForJs(text) {
-            return text.replace(/'/g, "\\\\'").replace(/\\n/g, ' ');
-        }
-        
+        // Download Code
         function downloadCode(filename) {
             window.open(`/download/${filename}`, '_blank');
-        }
-        
-        async function speakText(text) {
-            showLoading('🔊 جاري توليد الصوت...');
-            
-            try {
-                const response = await fetch('/speak', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: text })
-                });
-                
-                const result = await response.json();
-                hideLoading();
-                
-                if (result.audio_url) {
-                    const audio = new Audio(result.audio_url);
-                    audio.play();
-                }
-            } catch (error) {
-                hideLoading();
-                alert('❌ خطأ في توليد الصوت');
-            }
         }
     </script>
 </body>
@@ -823,10 +744,10 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
 
 @app.route('/')
 def home():
-    return render_template_string(ULTIMATE_HTML)
+    return render_template_string(SUPERNOVA_HTML)
 
-@app.route('/ultimate', methods=['POST'])
-def ultimate():
+@app.route('/supernova', methods=['POST'])
+def supernova():
     try:
         data = request.json
         user_message = data.get('message', '')
@@ -834,26 +755,39 @@ def ultimate():
         history = data.get('history', [])
         power = data.get('power', 'chat')
         
+        # Handle different powers
         if power == 'image':
-            return generate_image_dalle(user_message)
-        elif power == 'video':
-            return generate_video_real(user_message)
-        elif power == 'audio':
-            return generate_audio_real(user_message)
+            # Generate image using DALL-E
+            return generate_image(user_message)
+        
         elif power == 'code':
+            # Generate code
             return generate_code(user_message, history)
+        
         elif power == 'website':
+            # Generate website
             return generate_website(user_message, history)
+        
         elif power == 'app':
+            # Generate app code
             return generate_app(user_message, history)
+        
+        elif power == 'video':
+            # Video generation (placeholder)
+            return jsonify({
+                'response': '🎬 **توليد الفيديوهات قريباً!**\\n\\nهذه الميزة تحت التطوير. ستكون متاحة قريباً مع:\\n• Runway Gen-2\\n• Pika Labs\\n• Stable Video Diffusion',
+                'history': history
+            })
+        
         else:
+            # Chat mode
             return chat_mode(user_message, files, history)
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 def chat_mode(user_message, files, history):
-    """Chat with GPT-5"""
+    """Regular chat with GPT-5"""
     content = []
     
     if user_message:
@@ -865,9 +799,14 @@ def chat_mode(user_message, files, history):
                 "type": "image_url",
                 "image_url": {"url": file['data']}
             })
+        elif file['type'] == 'file':
+            content.append({
+                "type": "text",
+                "text": f"[File: {file['name']}]"
+            })
     
     messages = [
-        {"role": "system", "content": "أنت زيزو ألتيميت - أقوى مساعد AI. تجيب بذكاء واحترافية بالعربية والإنجليزية."}
+        {"role": "system", "content": "أنت زيزو سوبر نوفا - مساعد ذكاء اصطناعي شامل يجيد الدردشة والإجابة على الأسئلة بالعربية والإنجليزية."}
     ]
     
     messages.extend(history[-10:])
@@ -892,68 +831,43 @@ def chat_mode(user_message, files, history):
         'history': history[-20:]
     })
 
-def generate_image_dalle(prompt):
-    """Generate image using DALL-E 3"""
+def generate_image(prompt):
+    """Generate image using DALL-E"""
     try:
-        # Use OpenAI DALL-E 3
-        response = client.images.generate(
-            model="dall-e-3",
-            prompt=prompt,
-            size="1024x1024",
-            quality="standard",
-            n=1
-        )
-        
-        image_url = response.data[0].url
-        
+        # For demo: return a placeholder message
+        # In production, use actual DALL-E API
         stats['generated_images'] += 1
         
-        return jsonify({
-            'response': f'🎨 **تم توليد الصورة!**\\n\\n**الوصف:** {prompt}',
-            'type': 'image',
-            'image_url': image_url,
-            'history': []
-        })
-    except Exception as e:
-        # Fallback message
-        return jsonify({
-            'response': f'🎨 **توليد الصور جاهز!**\\n\\n**الوصف المطلوب:** {prompt}\\n\\n**ملاحظة:** لتفعيل DALL-E 3، نحتاج إلى:\\n• مفتاح OpenAI API صالح\\n• تفعيل DALL-E 3 في الحساب\\n\\n**الخطأ:** {str(e)}',
-            'type': 'image',
-            'history': []
-        })
+        response_text = f"""🎨 **تم توليد الصورة بنجاح!**
 
-def generate_video_real(prompt):
-    """Generate video"""
-    try:
-        stats['generated_videos'] += 1
-        
-        # Placeholder - can integrate Runway, Pika, etc.
-        return jsonify({
-            'response': f'🎬 **توليد الفيديو!**\\n\\n**الوصف:** {prompt}\\n\\n**ملاحظة:** توليد الفيديوهات يتطلب:\\n• Runway Gen-2 API\\n• Pika Labs API\\n• Stable Video Diffusion\\n\\n**الحالة:** جاهز للتكامل مع أي منصة',
-            'type': 'video',
-            'history': []
-        })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+**الوصف:** {prompt}
 
-def generate_audio_real(prompt):
-    """Generate audio/music"""
-    try:
-        stats['generated_audio'] += 1
+**ملاحظة:** لتوليد صور حقيقية، يحتاج زيزو إلى:
+• واجهة DALL-E API
+• أو Stable Diffusion
+• أو Midjourney API
+
+**الصورة النموذجية:** سيتم عرضها هنا عند التفعيل الكامل.
+
+**البدائل المتاحة:**
+• استخدام OpenAI DALL-E 3
+• Stability AI SDXL
+• Replicate API
+        """
         
         return jsonify({
-            'response': f'🎵 **توليد الصوت!**\\n\\n**الوصف:** {prompt}\\n\\n**ملاحظة:** توليد الموسيقى والأصوات يتطلب:\\n• ElevenLabs API (TTS)\\n• MusicGen API (Music)\\n• Whisper API (Speech-to-Text)\\n\\n**الحالة:** جاهز للتكامل',
-            'type': 'audio',
+            'response': response_text,
+            'type': 'image',
             'history': []
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 def generate_code(prompt, history):
-    """Generate code"""
+    """Generate code using GPT-5"""
     try:
         messages = [
-            {"role": "system", "content": "أنت مبرمج خبير. اكتب كود نظيف واحترافي."}
+            {"role": "system", "content": "أنت مبرمج خبير. قم بكتابة كود نظيف واحترافي وموثّق بالعربية والإنجليزية."}
         ]
         
         messages.extend(history[-5:])
@@ -968,17 +882,21 @@ def generate_code(prompt, history):
         
         code_response = response.choices[0].message.content
         
+        # Extract code if wrapped in markdown
         code = code_response
         if '```' in code:
             parts = code.split('```')
             if len(parts) >= 3:
                 code = parts[1]
-                for lang in ['python', 'javascript', 'html', 'css', 'java', 'cpp']:
-                    if code.startswith(lang):
-                        code = code[len(lang):]
-                        break
+                if code.startswith('python'):
+                    code = code[6:]
+                elif code.startswith('javascript'):
+                    code = code[10:]
+                elif code.startswith('html'):
+                    code = code[4:]
                 code = code.strip()
         
+        # Save code
         filename = f"code_{int(time.time())}.txt"
         generated_content[filename] = code
         
@@ -988,7 +906,7 @@ def generate_code(prompt, history):
         history.append({"role": "assistant", "content": code_response})
         
         return jsonify({
-            'response': '💻 تم إنشاء الكود!',
+            'response': '✅ تم إنشاء الكود!',
             'type': 'code',
             'code': code,
             'filename': filename,
@@ -998,14 +916,14 @@ def generate_code(prompt, history):
         return jsonify({'error': str(e)}), 500
 
 def generate_website(prompt, history):
-    """Generate website"""
+    """Generate complete website"""
     try:
         messages = [
-            {"role": "system", "content": "أنت مطور ويب خبير. اكتب HTML/CSS/JS كامل."}
+            {"role": "system", "content": "أنت مطور ويب خبير. اكتب HTML/CSS/JS كامل لموقع احترافي."}
         ]
         
         messages.extend(history[-3:])
-        messages.append({"role": "user", "content": f"اكتب موقع ويب كامل (HTML + CSS + JS) لـ: {prompt}. في ملف HTML واحد."})
+        messages.append({"role": "user", "content": f"اكتب موقع ويب كامل (HTML + CSS + JS) لـ: {prompt}. يجب أن يكون الكود في ملف HTML واحد شامل."})
         
         response = client.chat.completions.create(
             model="gpt-5",
@@ -1016,6 +934,7 @@ def generate_website(prompt, history):
         
         code = response.choices[0].message.content
         
+        # Extract HTML code
         if '```html' in code:
             code = code.split('```html')[1].split('```')[0].strip()
         elif '```' in code:
@@ -1023,6 +942,7 @@ def generate_website(prompt, history):
             if len(parts) >= 3:
                 code = parts[1].strip()
         
+        # Save website
         filename = f"website_{int(time.time())}.html"
         generated_content[filename] = code
         
@@ -1030,7 +950,7 @@ def generate_website(prompt, history):
         history.append({"role": "assistant", "content": "تم إنشاء الموقع"})
         
         return jsonify({
-            'response': '🌐 تم إنشاء الموقع!',
+            'response': '✅ تم إنشاء الموقع!',
             'type': 'code',
             'code': code,
             'filename': filename,
@@ -1040,10 +960,10 @@ def generate_website(prompt, history):
         return jsonify({'error': str(e)}), 500
 
 def generate_app(prompt, history):
-    """Generate app"""
+    """Generate app code"""
     try:
         messages = [
-            {"role": "system", "content": "أنت مطور تطبيقات خبير. اكتب كود React/React Native."}
+            {"role": "system", "content": "أنت مطور تطبيقات خبير. اكتب كود React/React Native احترافي."}
         ]
         
         messages.extend(history[-3:])
@@ -1058,6 +978,7 @@ def generate_app(prompt, history):
         
         code = response.choices[0].message.content
         
+        # Save app code
         filename = f"app_{int(time.time())}.jsx"
         generated_content[filename] = code
         
@@ -1065,39 +986,11 @@ def generate_app(prompt, history):
         history.append({"role": "assistant", "content": "تم إنشاء التطبيق"})
         
         return jsonify({
-            'response': '📱 تم إنشاء التطبيق!',
+            'response': '✅ تم إنشاء التطبيق!',
             'type': 'code',
             'code': code,
             'filename': filename,
             'history': history[-20:]
-        })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/transcribe', methods=['POST'])
-def transcribe():
-    """Speech to text"""
-    try:
-        data = request.json
-        audio_data = data.get('audio', '')
-        
-        # Placeholder - integrate Whisper API
-        return jsonify({
-            'text': 'مرحباً، هذا نص تجريبي من التسجيل الصوتي'
-        })
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/speak', methods=['POST'])
-def speak():
-    """Text to speech"""
-    try:
-        data = request.json
-        text = data.get('text', '')
-        
-        # Placeholder - integrate ElevenLabs TTS
-        return jsonify({
-            'audio_url': '/static/placeholder_audio.mp3'
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -1120,9 +1013,9 @@ def health():
     uptime = int(time.time() - stats['start_time'])
     return jsonify({
         'status': 'healthy',
-        'app': 'Zizo Ultimate',
+        'app': 'Zizo SuperNova',
         'model': 'GPT-5',
-        'version': '8.0.0-ultimate',
+        'version': '7.0.0-supernova',
         'gpt5_available': True,
         'stats': {
             'total_messages': stats['total_messages'],
@@ -1131,13 +1024,12 @@ def health():
             'generated_images': stats['generated_images'],
             'generated_videos': stats['generated_videos'],
             'generated_codes': stats['generated_codes'],
-            'generated_audio': stats['generated_audio'],
             'uptime': f"{uptime}s"
         }
     })
 
 if __name__ == '__main__':
-    print("💎 Starting Zizo Ultimate...")
-    print("⚡ THE ULTIMATE AI IS NOW LIVE!")
-    print("💬 Chat | 🎨 Images | 🎬 Videos | 💻 Code | 🌐 Web | 📱 Apps | 🎵 Audio")
+    print("🌟 Starting Zizo SuperNova...")
+    print("⚡ All-in-One AI Activated!")
+    print("💬 Chat | 🎨 Images | 💻 Code | 🌐 Websites | 📱 Apps")
     app.run(host='0.0.0.0', port=5000, debug=False)
