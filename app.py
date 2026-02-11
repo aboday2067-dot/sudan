@@ -438,12 +438,66 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(102, 126, 234, 0.95);
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.98) 0%, rgba(118, 75, 162, 0.98) 100%);
             z-index: 3000;
             justify-content: center;
             align-items: center;
             flex-direction: column;
             color: white;
+            backdrop-filter: blur(10px);
+        }
+        
+        .loading-content {
+            text-align: center;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            min-width: 300px;
+        }
+        
+        .loading-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: bounce 1s infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+        
+        .loading-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .loading-subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 20px;
+        }
+        
+        .loading-progress {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        
+        .loading-bar {
+            height: 100%;
+            background: white;
+            border-radius: 2px;
+            animation: progress 2s ease-in-out infinite;
+        }
+        
+        @keyframes progress {
+            0% { width: 0%; }
+            50% { width: 70%; }
+            100% { width: 100%; }
         }
         
         .loader {
@@ -521,8 +575,14 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
 </head>
 <body>
     <div id="loadingOverlay">
-        <div class="loader"></div>
-        <div class="loading-text">💎 ألتيميت يعمل...</div>
+        <div class="loading-content">
+            <div class="loading-icon" id="loadingIcon">💎</div>
+            <div class="loading-title" id="loadingTitle">ألتيميت يعمل...</div>
+            <div class="loading-subtitle" id="loadingSubtitle">جاري المعالجة</div>
+            <div class="loading-progress">
+                <div class="loading-bar"></div>
+            </div>
+        </div>
     </div>
     
     <div id="app">
@@ -811,7 +871,18 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
             uploadedFiles = [];
             updatePreview();
             
-            showLoading('💎 ألتيميت يعمل...');
+            // Dynamic loading based on power
+            const loadingConfig = {
+                'chat': { icon: '💬', title: 'جاري المحادثة...', subtitle: 'GPT-5 يفكر' },
+                'image': { icon: '🎨', title: 'جاري توليد الصورة...', subtitle: 'FLUX يرسم لك' },
+                'video': { icon: '🎬', title: 'جاري توليد الفيديو...', subtitle: 'المونتاج جارٍ' },
+                'audio': { icon: '🎵', title: 'جاري توليد الصوت...', subtitle: 'الموسيقى تُنشأ' },
+                'code': { icon: '💻', title: 'جاري كتابة الكود...', subtitle: 'المبرمج يعمل' },
+                'website': { icon: '🌐', title: 'جاري بناء الموقع...', subtitle: 'التصميم جارٍ' },
+                'app': { icon: '📱', title: 'جاري تطوير التطبيق...', subtitle: 'البرمجة جارية' }
+            };
+            const config = loadingConfig[currentPower] || loadingConfig['chat'];
+            showLoading(config.icon, config.title, config.subtitle);
             
             try {
                 const response = await fetch('/ultimate', {
@@ -826,33 +897,63 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
                 hideLoading();
                 
                 if (result.response) {
-                    let displayMessage = result.response;
+                    let displayMessage = '';
                     
                     if (result.type === 'image') {
                         if (result.image_url) {
-                            displayMessage += `<br><div class="media-result"><img src="${result.image_url}" style="max-width: 300px; border-radius: 10px; margin-top: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);"></div>`;
+                            // صورة نظيفة بدون نصوص
+                            displayMessage = `<div class="media-result" style="text-align: center;"><img src="${result.image_url}" style="max-width: 100%; max-height: 400px; border-radius: 15px; box-shadow: 0 8px 25px rgba(0,0,0,0.15);"></div>`;
                         } else if (result.status === 'processing') {
-                            displayMessage += `<br><div class="processing-indicator" style="text-align: center; padding: 20px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 10px; margin-top: 10px;"><div style="font-size: 40px; animation: spin 2s linear infinite;">🎨</div><p style="color: white; margin-top: 10px;">جاري توليد الصورة...</p></div>`;
+                            displayMessage = `<div class="processing-indicator" style="text-align: center; padding: 30px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 15px;"><div style="font-size: 60px; animation: spin 2s linear infinite;">🎨</div><p style="color: white; margin-top: 15px; font-size: 18px; font-weight: bold;">جاري الرسم...</p></div>`;
+                        } else {
+                            displayMessage = result.response;
                         }
                     } else if (result.type === 'video') {
                         if (result.video_url) {
-                            displayMessage += `<br><div class="media-result"><video controls style="max-width: 300px; border-radius: 10px; margin-top: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);"><source src="${result.video_url}" type="video/mp4"></video></div>`;
+                            // فيديو نظيف بدون نصوص
+                            displayMessage = `<div class="media-result" style="text-align: center;"><video controls style="max-width: 100%; max-height: 400px; border-radius: 15px; box-shadow: 0 8px 25px rgba(0,0,0,0.15);"><source src="${result.video_url}" type="video/mp4"></video></div>`;
                         } else if (result.status === 'processing') {
-                            displayMessage += `<br><div class="processing-indicator" style="text-align: center; padding: 20px; background: linear-gradient(135deg, #f093fb, #f5576c); border-radius: 10px; margin-top: 10px;"><div style="font-size: 40px; animation: spin 2s linear infinite;">🎬</div><p style="color: white; margin-top: 10px;">جاري توليد الفيديو...</p></div>`;
+                            displayMessage = `<div class="processing-indicator" style="text-align: center; padding: 30px; background: linear-gradient(135deg, #f093fb, #f5576c); border-radius: 15px;"><div style="font-size: 60px; animation: spin 2s linear infinite;">🎬</div><p style="color: white; margin-top: 15px; font-size: 18px; font-weight: bold;">جاري المونتاج...</p></div>`;
+                        } else {
+                            displayMessage = result.response;
                         }
                     } else if (result.type === 'audio') {
                         if (result.audio_url) {
-                            displayMessage += `<br><div class="media-result"><audio controls style="width: 100%; margin-top: 10px;"><source src="${result.audio_url}" type="audio/mpeg"></audio></div>`;
+                            // صوت نظيف
+                            displayMessage = `<div class="media-result" style="text-align: center; padding: 20px; background: linear-gradient(135deg, #ffd140, #f5576c); border-radius: 15px;"><audio controls style="width: 100%;"><source src="${result.audio_url}" type="audio/mpeg"></audio></div>`;
                         } else if (result.status === 'processing') {
-                            displayMessage += `<br><div class="processing-indicator" style="text-align: center; padding: 20px; background: linear-gradient(135deg, #ffd140, #f5576c); border-radius: 10px; margin-top: 10px;"><div style="font-size: 40px; animation: pulse 1.5s ease-in-out infinite;">🎵</div><p style="color: white; margin-top: 10px;">جاري توليد الصوت...</p></div>`;
+                            displayMessage = `<div class="processing-indicator" style="text-align: center; padding: 30px; background: linear-gradient(135deg, #ffd140, #f5576c); border-radius: 15px;"><div style="font-size: 60px; animation: pulse 1.5s ease-in-out infinite;">🎵</div><p style="color: white; margin-top: 15px; font-size: 18px; font-weight: bold;">جاري الإنتاج...</p></div>`;
+                        } else {
+                            displayMessage = result.response;
                         }
                     } else if (result.type === 'code' && result.code) {
-                        displayMessage = `${result.response}<br><pre>${escapeHtml(result.code)}</pre><button class="download-btn" onclick="downloadCode('${result.filename}')">⬇️ تحميل</button>`;
-                    }
-                    
-                    // Add TTS button
-                    if (result.response && result.type !== 'code') {
-                        displayMessage += `<br><button class="play-btn" onclick="speakText('${escapeForJs(result.response)}')">🔊 استمع</button>`;
+                        // عرض الكود مع live preview
+                        displayMessage = `
+                            <div style="background: #1e1e1e; border-radius: 10px; padding: 15px; margin: 10px 0;">
+                                <div style="color: #4caf50; font-weight: bold; margin-bottom: 10px;">✅ تم توليد الكود</div>
+                                <pre style="background: #2d2d2d; color: #e0e0e0; padding: 15px; border-radius: 8px; overflow-x: auto; max-height: 400px;">${escapeHtml(result.code)}</pre>
+                                <div style="margin-top: 10px;">
+                                    <button class="download-btn" onclick="downloadCode('${result.filename}')" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; margin-right: 10px;">⬇️ تحميل</button>
+                                    <button class="download-btn" onclick="previewCode('${result.filename}')" style="background: linear-gradient(135deg, #f093fb, #f5576c); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer;">👁️ معاينة</button>
+                                </div>
+                            </div>
+                        `;
+                    } else if (result.type === 'website' && result.code) {
+                        // عرض الموقع مباشرة مع iframe
+                        displayMessage = `
+                            <div style="background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 15px; padding: 20px; margin: 10px 0;">
+                                <div style="color: white; font-weight: bold; margin-bottom: 15px; font-size: 18px;">🌐 الموقع جاهز!</div>
+                                <div style="background: white; border-radius: 10px; padding: 5px;">
+                                    <iframe srcdoc="${escapeHtml(result.code)}" style="width: 100%; height: 400px; border: none; border-radius: 8px;"></iframe>
+                                </div>
+                                <div style="margin-top: 15px;">
+                                    <button class="download-btn" onclick="downloadCode('${result.filename}')" style="background: white; color: #667eea; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold;">⬇️ تحميل الموقع</button>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        // رسائل نصية عادية (دردشة)
+                        displayMessage = result.response;
                     }
                     
                     addMessage('assistant', displayMessage);
@@ -895,9 +996,11 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
             if (indicator) indicator.remove();
         }
         
-        function showLoading(text) {
+        function showLoading(icon, title, subtitle) {
             const overlay = document.getElementById('loadingOverlay');
-            overlay.querySelector('.loading-text').textContent = text;
+            document.getElementById('loadingIcon').textContent = icon;
+            document.getElementById('loadingTitle').textContent = title;
+            document.getElementById('loadingSubtitle').textContent = subtitle;
             overlay.style.display = 'flex';
         }
         
@@ -917,6 +1020,20 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
         
         function downloadCode(filename) {
             window.open(`/download/${filename}`, '_blank');
+        }
+        
+        function previewCode(filename) {
+            // معاينة الكود في نافذة منبثقة
+            fetch(`/download/${filename}`)
+                .then(response => response.text())
+                .then(code => {
+                    const previewWindow = window.open('', '_blank', 'width=800,height=600');
+                    previewWindow.document.write(code);
+                    previewWindow.document.close();
+                })
+                .catch(error => {
+                    alert('خطأ في المعاينة: ' + error);
+                });
         }
         
         async function speakText(text) {
