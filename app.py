@@ -1031,33 +1031,69 @@ def chat_mode(user_message, files, history):
     })
 
 def generate_image_dalle(prompt):
-    """Generate image using AI Generation API"""
+    """Generate image using FAL.AI or Replicate"""
     try:
-        # Call GenSpark image generation
-        api_url = "http://localhost:8080/api/image/generate"  # Adjust if needed
-        payload = {
-            "query": prompt,
-            "model": "fal-ai/flux-2-pro",  # High quality
-            "aspect_ratio": "1:1",
-            "image_urls": [],
-            "task_summary": f"Generate image: {prompt[:50]}"
-        }
+        # Try FAL.AI first (faster and higher quality)
+        if FAL_ENABLED:
+            handler = fal_client.submit(
+                "fal-ai/flux-pro/v1.1",
+                arguments={
+                    "prompt": prompt,
+                    "image_size": "square_hd",
+                    "num_inference_steps": 28,
+                    "guidance_scale": 3.5,
+                    "num_images": 1
+                }
+            )
+            
+            result = handler.get()
+            image_url = result['images'][0]['url']
+            
+            stats['generated_images'] += 1
+            
+            return jsonify({
+                'response': f'🎨 **تم توليد الصورة بنجاح!**\\n\\n**الوصف:** {prompt}\\n**النموذج:** Flux Pro v1.1 (أعلى جودة)\\n**الدقة:** 1024×1024',
+                'type': 'image',
+                'image_url': image_url,
+                'status': 'success',
+                'history': []
+            })
         
-        # Note: This is a placeholder - actual integration would use the image_generation tool
-        # For now, we'll return a structured response
+        # Fallback to Replicate
+        elif REPLICATE_ENABLED:
+            output = replicate.run(
+                "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
+                input={
+                    "prompt": prompt,
+                    "width": 1024,
+                    "height": 1024,
+                    "num_outputs": 1
+                }
+            )
+            
+            image_url = output[0] if isinstance(output, list) else output
+            
+            stats['generated_images'] += 1
+            
+            return jsonify({
+                'response': f'🎨 **تم توليد الصورة بنجاح!**\\n\\n**الوصف:** {prompt}\\n**النموذج:** Stability SDXL',
+                'type': 'image',
+                'image_url': image_url,
+                'status': 'success',
+                'history': []
+            })
         
-        stats['generated_images'] += 1
-        
-        return jsonify({
-            'response': f'🎨 **تم بدء توليد الصورة!**\\n\\n**الوصف:** {prompt}\\n\\n**الحالة:** جاري المعالجة باستخدام نموذج Flux 2 Pro عالي الجودة...\\n\\n**ملاحظة:** التوليد يستغرق 30-60 ثانية. الصورة ستظهر هنا فور الانتهاء!',
-            'type': 'image',
-            'status': 'processing',
-            'prompt': prompt,
-            'history': []
-        })
+        else:
+            return jsonify({
+                'response': f'🎨 **توليد الصور غير مفعّل**\\n\\n**الوصف:** {prompt}\\n\\n**ملاحظة:** لتفعيل التوليد، أضف FAL.AI أو Replicate API Key في الإعدادات.',
+                'type': 'image',
+                'status': 'disabled',
+                'history': []
+            })
+            
     except Exception as e:
         return jsonify({
-            'response': f'❌ **خطأ في توليد الصورة**\\n\\n**الخطأ:** {str(e)}\\n\\n**الوصف:** {prompt}',
+            'response': f'❌ **خطأ في توليد الصورة**\\n\\n**الخطأ:** {str(e)}\\n\\n**الوصف:** {prompt}\\n\\n**نصيحة:** تأكد من صحة API Key',
             'type': 'error',
             'history': []
         })
