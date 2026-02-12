@@ -841,13 +841,10 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
                     document.getElementById('voiceBtn').innerHTML = '🎤';
                 }
             } else {
-                // Stop recording
+                // Stop recording (not applicable for Web Speech API)
                 isRecording = false;
                 document.getElementById('voiceBtn').classList.remove('recording');
                 document.getElementById('voiceBtn').innerHTML = '🎤';
-                
-                // Stop all tracks
-                mediaRecorder.stream.getTracks().forEach(track => track.stop());
             }
         }
         
@@ -947,7 +944,7 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
                     };
                 } else if (currentPower === 'translator') {
                     // استخراج اللغة من الرسالة
-                    const match = message.match(/من\s+(\w+)\s+إلى\s+(\w+)/i);
+                    const match = message.match(/من\\s+(\\w+)\\s+إلى\\s+(\\w+)/i);
                     const fromLang = match ? match[1] : 'JavaScript';
                     const toLang = match ? match[2] : 'Python';
                     endpoint = '/translate-code';
@@ -1235,11 +1232,6 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
                 } catch (e) {
                     alert('❌ خطأ في توليد الصوت');
                 }
-            }
-        }
-            } catch (error) {
-                hideLoading();
-                alert('❌ خطأ في توليد الصوت');
             }
         }
         
