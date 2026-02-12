@@ -788,55 +788,63 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
         }
         
         async function toggleVoice() {
+            // استخدام Web Speech API (أسرع وأسهل)
             if (!isRecording) {
                 try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    mediaRecorder = new MediaRecorder(stream);
-                    audioChunks = [];
+                    // Check if browser supports Speech Recognition
+                    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                     
-                    mediaRecorder.ondataavailable = (event) => {
-                        audioChunks.push(event.data);
-                    };
-                    
-                    mediaRecorder.onstop = async () => {
-                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                        const reader = new FileReader();
-                        reader.onload = async (e) => {
-                            // Send audio for transcription
-                            showLoading('🎤 جاري تحويل الصوت إلى نص...');
-                            
-                            try {
-                                const response = await fetch('/transcribe', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ audio: e.target.result })
-                                });
-                                
-                                const result = await response.json();
-                                hideLoading();
-                                
-                                if (result.text) {
-                                    document.getElementById('userInput').value = result.text;
-                                }
-                            } catch (error) {
-                                hideLoading();
-                                alert('❌ خطأ في تحويل الصوت');
-                            }
+                    if (SpeechRecognition) {
+                        const recognition = new SpeechRecognition();
+                        recognition.lang = 'ar-SA'; // Arabic
+                        recognition.continuous = false;
+                        recognition.interimResults = false;
+                        
+                        recognition.onstart = () => {
+                            isRecording = true;
+                            document.getElementById('voiceBtn').classList.add('recording');
+                            document.getElementById('voiceBtn').innerHTML = '🔴';
+                            showLoading('🎤', 'استمع...', 'تحدث الآن');
                         };
-                        reader.readAsDataURL(audioBlob);
-                    };
-                    
-                    mediaRecorder.start();
-                    isRecording = true;
-                    document.getElementById('voiceBtn').classList.add('recording');
+                        
+                        recognition.onresult = (event) => {
+                            const transcript = event.results[0][0].transcript;
+                            document.getElementById('userInput').value = transcript;
+                            hideLoading();
+                        };
+                        
+                        recognition.onerror = (event) => {
+                            console.error('Speech recognition error:', event.error);
+                            hideLoading();
+                            alert('❌ خطأ في التعرف على الصوت. جرب مرة أخرى.');
+                            isRecording = false;
+                            document.getElementById('voiceBtn').classList.remove('recording');
+                            document.getElementById('voiceBtn').innerHTML = '🎤';
+                        };
+                        
+                        recognition.onend = () => {
+                            isRecording = false;
+                            document.getElementById('voiceBtn').classList.remove('recording');
+                            document.getElementById('voiceBtn').innerHTML = '🎤';
+                            hideLoading();
+                        };
+                        
+                        recognition.start();
+                    } else {
+                        alert('❌ متصفحك لا يدعم التعرف على الصوت. استخدم Chrome أو Edge.');
+                    }
                     
                 } catch (error) {
                     alert('❌ لا يمكن الوصول إلى الميكروفون');
+                    isRecording = false;
+                    document.getElementById('voiceBtn').classList.remove('recording');
+                    document.getElementById('voiceBtn').innerHTML = '🎤';
                 }
             } else {
-                mediaRecorder.stop();
+                // Stop recording
                 isRecording = false;
                 document.getElementById('voiceBtn').classList.remove('recording');
+                document.getElementById('voiceBtn').innerHTML = '🎤';
                 
                 // Stop all tracks
                 mediaRecorder.stream.getTracks().forEach(track => track.stop());
@@ -1183,7 +1191,7 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
         }
         
         async function speakText(text) {
-            showLoading('🔊 جاري توليد الصوت...');
+            showLoading('🔊', 'جاري توليد الصوت...', 'انتظر قليلاً');
             
             try {
                 const response = await fetch('/speak', {
@@ -1198,7 +1206,37 @@ ULTIMATE_HTML = '''<!DOCTYPE html>
                 if (result.audio_url) {
                     const audio = new Audio(result.audio_url);
                     audio.play();
+                    addMessage('assistant', '🔊 يتم تشغيل الصوت...');
+                } else if (result.use_browser_tts) {
+                    // استخدام Web Speech API (متصفح)
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.lang = 'ar-SA';
+                    utterance.rate = 1.0;
+                    utterance.pitch = 1.0;
+                    
+                    // البحث عن صوت عربي
+                    const voices = speechSynthesis.getVoices();
+                    const arabicVoice = voices.find(voice => voice.lang.startsWith('ar'));
+                    if (arabicVoice) {
+                        utterance.voice = arabicVoice;
+                    }
+                    
+                    speechSynthesis.speak(utterance);
+                    addMessage('assistant', '🔊 يتم تشغيل الصوت (المتصفح)...');
                 }
+            } catch (error) {
+                hideLoading();
+                // محاولة أخيرة مع Web Speech API
+                try {
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.lang = 'ar-SA';
+                    speechSynthesis.speak(utterance);
+                    addMessage('assistant', '🔊 يتم تشغيل الصوت...');
+                } catch (e) {
+                    alert('❌ خطأ في توليد الصوت');
+                }
+            }
+        }
             } catch (error) {
                 hideLoading();
                 alert('❌ خطأ في توليد الصوت');
@@ -1533,7 +1571,26 @@ def generate_video_real(prompt):
     try:
         if not REPLICATE_ENABLED:
             return jsonify({
-                'response': f'🎬 **توليد الفيديو غير مفعّل**\\n\\n**الوصف:** {prompt}\\n\\n**ملاحظة:** لتفعيل التوليد، أضف Replicate API Token في الإعدادات.',
+                'response': f'''🎬 **توليد الفيديو غير مفعّل**
+
+**الوصف المطلوب:** {prompt}
+
+**📋 لتفعيل توليد الفيديو:**
+1. سجّل في Replicate: https://replicate.com/signin
+2. احصل على API Token: https://replicate.com/account/api-tokens
+3. انسخ الـ Token (يبدأ بـ r8_)
+4. أضفه في ملف ~/.genspark_llm.yaml:
+   ```yaml
+   replicate:
+     api_token: r8_your_token_here
+   ```
+5. أعد تشغيل التطبيق
+
+**💡 بدائل مجانية قريباً:**
+- Hugging Face Video Models
+- Local video generation
+
+**Need help?** https://replicate.com/docs/get-started/python''',
                 'type': 'video',
                 'status': 'disabled',
                 'history': []
@@ -1554,15 +1611,47 @@ def generate_video_real(prompt):
         stats['generated_videos'] += 1
         
         return jsonify({
-            'response': f'🎬 **تم توليد الفيديو بنجاح!**\\n\\n**الوصف:** {prompt}\\n**المدة:** ~3 ثوان\\n**النموذج:** Zeroscope V2 XL',
+            'response': f'🎬 **تم توليد الفيديو بنجاح!**\n\n**الوصف:** {prompt}\n**المدة:** ~3 ثوان\n**النموذج:** Zeroscope V2 XL',
             'type': 'video',
             'video_url': video_url,
             'status': 'success',
             'history': []
         })
+    except replicate.exceptions.ReplicateError as e:
+        error_msg = str(e)
+        if '401' in error_msg or 'Unauthenticated' in error_msg:
+            return jsonify({
+                'response': f'''❌ **خطأ: Token غير صحيح**
+
+**المشكلة:** Replicate API Token منتهي أو غير صالح
+
+**📋 الحل:**
+1. افتح: https://replicate.com/account/api-tokens
+2. احذف الـ Token القديم
+3. أنشئ Token جديد
+4. انسخه (يبدأ بـ r8_...)
+5. حدّث ~/.genspark_llm.yaml:
+   ```yaml
+   replicate:
+     api_token: r8_new_token_here
+   ```
+6. أعد تشغيل زيزو
+
+**الوصف المطلوب:** {prompt}
+
+**الخطأ التقني:** {error_msg}''',
+                'type': 'error',
+                'history': []
+            })
+        else:
+            return jsonify({
+                'response': f'❌ **خطأ في توليد الفيديو**\n\n**الخطأ:** {error_msg}\n\n**الوصف:** {prompt}\n\n**نصيحة:** جرب وصفاً أبسط أو تحقق من Token',
+                'type': 'error',
+                'history': []
+            })
     except Exception as e:
         return jsonify({
-            'response': f'❌ **خطأ في توليد الفيديو**\\n\\n**الخطأ:** {str(e)}\\n\\n**الوصف:** {prompt}\\n\\n**نصيحة:** تأكد من صحة Replicate API Token',
+            'response': f'❌ **خطأ غير متوقع**\n\n**الخطأ:** {str(e)}\n\n**الوصف:** {prompt}',
             'type': 'error',
             'history': []
         })
@@ -2307,15 +2396,49 @@ def transcribe():
 
 @app.route('/speak', methods=['POST'])
 def speak():
-    """Text to speech"""
+    """Text to speech using OpenAI TTS"""
     try:
         data = request.json
         text = data.get('text', '')
+        voice = data.get('voice', 'alloy')  # alloy, echo, fable, onyx, nova, shimmer
         
-        # Placeholder - integrate ElevenLabs TTS
-        return jsonify({
-            'audio_url': '/static/placeholder_audio.mp3'
-        })
+        if not text:
+            return jsonify({'error': 'No text provided'}), 400
+        
+        # استخدام OpenAI TTS
+        try:
+            response = client.audio.speech.create(
+                model="tts-1",
+                voice=voice,
+                input=text[:4000]  # حد أقصى
+            )
+            
+            # حفظ الصوت
+            audio_filename = f"speech_{int(time.time())}.mp3"
+            audio_path = f"/tmp/{audio_filename}"
+            
+            with open(audio_path, 'wb') as f:
+                for chunk in response.iter_bytes():
+                    f.write(chunk)
+            
+            # قراءة وإرجاع base64
+            with open(audio_path, 'rb') as f:
+                audio_data = base64.b64encode(f.read()).decode()
+            
+            return jsonify({
+                'audio_url': f'data:audio/mpeg;base64,{audio_data}',
+                'success': True
+            })
+            
+        except Exception as e:
+            print(f"OpenAI TTS error: {e}")
+            # Fallback: استخدام Web Speech API من جانب العميل
+            return jsonify({
+                'use_browser_tts': True,
+                'text': text,
+                'error': str(e)
+            })
+        
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
