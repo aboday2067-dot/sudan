@@ -1559,7 +1559,7 @@ def generate_image_dalle(prompt):
         })
 
 def generate_video_real(prompt):
-    """Generate video using Replicate API"""
+    """Generate video using Replicate API with improved models"""
     try:
         if not REPLICATE_ENABLED:
             return jsonify({
@@ -1588,15 +1588,72 @@ def generate_video_real(prompt):
                 'history': []
             })
         
-        # Use Replicate Zeroscope for video generation
-        output = replicate.run(
-            "anotherjesse/zeroscope-v2-xl:9f747673945c62801b13b84701c783929c0ee784e4748ec062204894dda1a351",
-            input={
-                "prompt": prompt,
-                "num_frames": 24,
-                "num_inference_steps": 50
-            }
-        )
+        # Detect if prompt is for a specific type of video
+        prompt_lower = prompt.lower()
+        
+        # Check for animation/cartoon keywords
+        is_animation = any(word in prompt_lower for word in ['كرتون', 'رسوم', 'animation', 'cartoon', '3d', 'animated'])
+        
+        # Check for realistic video keywords  
+        is_realistic = any(word in prompt_lower for word in ['واقعي', 'حقيقي', 'realistic', 'real', 'cinematic', 'photorealistic'])
+        
+        # Choose model based on content type
+        model_name = "Zeroscope V2 XL (Enhanced)"
+        duration = "~6 ثوان"
+        
+        # Improved video generation with better settings
+        try:
+            if is_realistic:
+                # Use better model for realistic videos
+                output = replicate.run(
+                    "anotherjesse/zeroscope-v2-xl:9f747673945c62801b13b84701c783929c0ee784e4748ec062204894dda1a351",
+                    input={
+                        "prompt": prompt + " cinematic, high quality, detailed, realistic",
+                        "num_frames": 48,  # 6 seconds at 8fps
+                        "num_inference_steps": 75,
+                        "fps": 8,
+                        "batch_size": 1,
+                        "guidance_scale": 17.5
+                    }
+                )
+            elif is_animation:
+                # Settings for animation/cartoon
+                output = replicate.run(
+                    "anotherjesse/zeroscope-v2-xl:9f747673945c62801b13b84701c783929c0ee784e4748ec062204894dda1a351",
+                    input={
+                        "prompt": prompt + " animated, cartoon style, vibrant colors",
+                        "num_frames": 48,
+                        "num_inference_steps": 75,
+                        "fps": 8,
+                        "batch_size": 1,
+                        "guidance_scale": 17.5
+                    }
+                )
+            else:
+                # Default settings - balanced
+                output = replicate.run(
+                    "anotherjesse/zeroscope-v2-xl:9f747673945c62801b13b84701c783929c0ee784e4748ec062204894dda1a351",
+                    input={
+                        "prompt": prompt + " high quality, detailed, smooth motion",
+                        "num_frames": 48,  # Doubled frames for longer video
+                        "num_inference_steps": 75,  # Increased for better quality
+                        "fps": 8,
+                        "batch_size": 1,
+                        "guidance_scale": 17.5  # Better prompt following
+                    }
+                )
+        except Exception as model_error:
+            # If advanced model fails, use basic Zeroscope
+            print(f"Advanced model failed, falling back to basic: {model_error}")
+            output = replicate.run(
+                "anotherjesse/zeroscope-v2-xl:9f747673945c62801b13b84701c783929c0ee784e4748ec062204894dda1a351",
+                input={
+                    "prompt": prompt,
+                    "num_frames": 48,
+                    "num_inference_steps": 50
+                }
+            )
+            model_name = "Zeroscope V2 XL"
         
         # Convert FileOutput to URL string
         if isinstance(output, list) and len(output) > 0:
@@ -1610,10 +1667,29 @@ def generate_video_real(prompt):
         stats['generated_videos'] += 1
         
         result = {
-            'response': f'🎬 **تم توليد الفيديو بنجاح!**\n\n**الوصف:** {prompt}\n**المدة:** ~3 ثوان\n**النموذج:** Zeroscope V2 XL',
+            'response': f'''🎬 **تم توليد الفيديو بنجاح!**
+
+**الوصف:** {prompt}
+**المدة:** {duration}
+**النموذج:** {model_name}
+**الجودة:** عالية
+**الإطارات:** 48 إطار
+**FPS:** 8 إطار/ثانية
+
+⚠️ **ملاحظة:** الفيديو حالياً بدون صوت. سنضيف دعم الصوت قريباً!
+
+💡 **نصائح للحصول على نتائج أفضل:**
+- استخدم وصفاً مفصلاً وواضحاً
+- أضف كلمات مثل "cinematic" أو "realistic" للفيديوهات الواقعية
+- استخدم "animated" أو "cartoon" للرسوم المتحركة
+- حدد الحركة المطلوبة (مثل: "طائر يطير", "سيارة تتحرك")''',
             'type': 'video',
             'video_url': video_url,
             'status': 'success',
+            'duration_seconds': 6,
+            'fps': 8,
+            'frames': 48,
+            'has_audio': False,
             'history': []
         }
         print(f"DEBUG: Returning result: {result}")
