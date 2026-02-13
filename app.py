@@ -2761,8 +2761,930 @@ def health():
         }
     })
 
+# ═══════════════════════════════════════════════════════════════════
+# 🚀 SMART APP BUILDER - إنشاء تطبيقات ذكية جاهزة
+# ═══════════════════════════════════════════════════════════════════
+
+APP_TEMPLATES = {
+    "landing_page": {
+        "name": "صفحة هبوط احترافية",
+        "description": "صفحة هبوط مع hero section وميزات ونموذج تواصل",
+        "components": ["header", "hero", "features", "cta", "footer"],
+        "code": """<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{title}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Arial; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .header { background: rgba(255,255,255,0.95); padding: 20px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .hero { padding: 80px 20px; text-align: center; color: white; }
+        .hero h1 { font-size: 3em; margin-bottom: 20px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+        .hero p { font-size: 1.5em; margin-bottom: 30px; }
+        .hero button { background: white; color: #667eea; padding: 15px 40px; border: none; border-radius: 50px; font-size: 1.2em; cursor: pointer; transition: 0.3s; }
+        .hero button:hover { transform: scale(1.05); box-shadow: 0 5px 20px rgba(0,0,0,0.3); }
+        .features { background: white; padding: 60px 20px; }
+        .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 30px; max-width: 1200px; margin: 0 auto; }
+        .feature-card { text-align: center; padding: 30px; border-radius: 15px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); transition: 0.3s; }
+        .feature-card:hover { transform: translateY(-10px); box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .feature-icon { font-size: 3em; margin-bottom: 15px; }
+        .cta { background: #667eea; color: white; padding: 60px 20px; text-align: center; }
+        .cta h2 { font-size: 2.5em; margin-bottom: 20px; }
+        .cta button { background: white; color: #667eea; padding: 15px 40px; border: none; border-radius: 50px; font-size: 1.2em; cursor: pointer; }
+        .footer { background: #2d3748; color: white; padding: 30px; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>🚀 {company_name}</h2>
+    </div>
+    
+    <div class="hero">
+        <h1>{hero_title}</h1>
+        <p>{hero_description}</p>
+        <button onclick="scrollToContact()">ابدأ الآن</button>
+    </div>
+    
+    <div class="features">
+        <h2 style="text-align: center; font-size: 2.5em; margin-bottom: 50px; color: #667eea;">الميزات</h2>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <h3>سريع</h3>
+                <p>أداء فائق السرعة</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🎨</div>
+                <h3>تصميم عصري</h3>
+                <p>واجهة جميلة وسهلة</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔒</div>
+                <h3>آمن</h3>
+                <p>حماية قوية للبيانات</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="cta">
+        <h2>جاهز للبدء؟</h2>
+        <p style="font-size: 1.3em; margin: 20px 0;">انضم لآلاف المستخدمين السعداء</p>
+        <button onclick="alert('تم التسجيل بنجاح!')">سجل الآن مجاناً</button>
+    </div>
+    
+    <div class="footer">
+        <p>&copy; 2026 {company_name}. جميع الحقوق محفوظة.</p>
+        <p style="margin-top: 10px;">صُنع بواسطة 💎 Zizo Ultimate</p>
+    </div>
+    
+    <script>
+        function scrollToContact() {
+            document.querySelector('.cta').scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>"""
+    },
+    "ecommerce": {
+        "name": "متجر إلكتروني",
+        "description": "متجر كامل مع سلة تسوق ومنتجات",
+        "components": ["products", "cart", "checkout"],
+        "code": """<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{store_name} - المتجر الإلكتروني</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Arial; background: #f8f9fa; }
+        .navbar { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .cart-icon { position: relative; cursor: pointer; font-size: 1.5em; }
+        .cart-count { position: absolute; top: -10px; left: -10px; background: red; color: white; border-radius: 50%; width: 25px; height: 25px; display: flex; align-items: center; justify-content: center; font-size: 0.8em; }
+        .products-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 30px; padding: 40px 20px; max-width: 1400px; margin: 0 auto; }
+        .product-card { background: white; border-radius: 15px; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.1); transition: 0.3s; }
+        .product-card:hover { transform: translateY(-5px); box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .product-image { width: 100%; height: 200px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; font-size: 3em; }
+        .product-info { padding: 20px; }
+        .product-price { color: #667eea; font-size: 1.5em; font-weight: bold; margin: 10px 0; }
+        .add-to-cart { background: #667eea; color: white; border: none; padding: 12px 30px; border-radius: 50px; cursor: pointer; width: 100%; font-size: 1em; transition: 0.3s; }
+        .add-to-cart:hover { background: #764ba2; transform: scale(1.02); }
+        .cart-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; }
+        .cart-content { background: white; width: 90%; max-width: 600px; margin: 50px auto; border-radius: 20px; padding: 30px; max-height: 80vh; overflow-y: auto; }
+        .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #eee; }
+        .checkout-btn { background: #10b981; color: white; border: none; padding: 15px 40px; border-radius: 50px; cursor: pointer; width: 100%; font-size: 1.2em; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <h1>🛍️ {store_name}</h1>
+        <div class="cart-icon" onclick="toggleCart()">
+            🛒
+            <span class="cart-count" id="cartCount">0</span>
+        </div>
+    </div>
+    
+    <div class="products-grid" id="productsGrid"></div>
+    
+    <div class="cart-modal" id="cartModal">
+        <div class="cart-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2>🛒 سلة التسوق</h2>
+                <button onclick="toggleCart()" style="background: none; border: none; font-size: 2em; cursor: pointer;">×</button>
+            </div>
+            <div id="cartItems"></div>
+            <div style="text-align: center; font-size: 1.5em; font-weight: bold; margin: 20px 0; color: #667eea;">
+                المجموع: <span id="totalPrice">0</span> ريال
+            </div>
+            <button class="checkout-btn" onclick="checkout()">إتمام الشراء</button>
+        </div>
+    </div>
+    
+    <script>
+        const products = [
+            { id: 1, name: 'منتج رائع 1', price: 99, emoji: '📱' },
+            { id: 2, name: 'منتج مميز 2', price: 149, emoji: '💻' },
+            { id: 3, name: 'منتج فاخر 3', price: 199, emoji: '⌚' },
+            { id: 4, name: 'منتج عصري 4', price: 79, emoji: '🎧' },
+            { id: 5, name: 'منتج حصري 5', price: 299, emoji: '📷' },
+            { id: 6, name: 'منتج جديد 6', price: 129, emoji: '🎮' }
+        ];
+        
+        let cart = [];
+        
+        function renderProducts() {
+            const grid = document.getElementById('productsGrid');
+            grid.innerHTML = products.map(p => `
+                <div class="product-card">
+                    <div class="product-image">${p.emoji}</div>
+                    <div class="product-info">
+                        <h3>${p.name}</h3>
+                        <div class="product-price">${p.price} ريال</div>
+                        <button class="add-to-cart" onclick="addToCart(${p.id})">
+                            إضافة للسلة
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function addToCart(productId) {
+            const product = products.find(p => p.id === productId);
+            const existingItem = cart.find(item => item.id === productId);
+            
+            if (existingItem) {
+                existingItem.quantity++;
+            } else {
+                cart.push({ ...product, quantity: 1 });
+            }
+            
+            updateCart();
+        }
+        
+        function updateCart() {
+            document.getElementById('cartCount').textContent = cart.reduce((sum, item) => sum + item.quantity, 0);
+            
+            const cartItems = document.getElementById('cartItems');
+            cartItems.innerHTML = cart.map(item => `
+                <div class="cart-item">
+                    <div>
+                        <div style="font-weight: bold;">${item.emoji} ${item.name}</div>
+                        <div>السعر: ${item.price} × ${item.quantity}</div>
+                    </div>
+                    <div>
+                        <button onclick="removeFromCart(${item.id})" style="background: #ef4444; color: white; border: none; padding: 5px 15px; border-radius: 20px; cursor: pointer;">حذف</button>
+                    </div>
+                </div>
+            `).join('');
+            
+            const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            document.getElementById('totalPrice').textContent = total;
+        }
+        
+        function removeFromCart(productId) {
+            cart = cart.filter(item => item.id !== productId);
+            updateCart();
+        }
+        
+        function toggleCart() {
+            const modal = document.getElementById('cartModal');
+            modal.style.display = modal.style.display === 'block' ? 'none' : 'block';
+        }
+        
+        function checkout() {
+            if (cart.length === 0) {
+                alert('السلة فارغة!');
+                return;
+            }
+            alert('تم إتمام الشراء بنجاح! 🎉\\nالمجموع: ' + cart.reduce((s, i) => s + (i.price * i.quantity), 0) + ' ريال');
+            cart = [];
+            updateCart();
+            toggleCart();
+        }
+        
+        renderProducts();
+    </script>
+</body>
+</html>"""
+    },
+    "dashboard": {
+        "name": "لوحة تحكم",
+        "description": "لوحة تحكم احترافية مع إحصائيات",
+        "components": ["sidebar", "stats", "charts"],
+        "code": """<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Arial; background: #f0f2f5; }
+        .dashboard { display: flex; min-height: 100vh; }
+        .sidebar { width: 250px; background: linear-gradient(180deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; }
+        .sidebar h2 { margin-bottom: 30px; text-align: center; }
+        .sidebar-menu { list-style: none; }
+        .sidebar-menu li { padding: 15px; margin: 10px 0; border-radius: 10px; cursor: pointer; transition: 0.3s; }
+        .sidebar-menu li:hover { background: rgba(255,255,255,0.1); }
+        .main-content { flex: 1; padding: 30px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .stat-icon { font-size: 2.5em; margin-bottom: 10px; }
+        .stat-value { font-size: 2em; font-weight: bold; color: #667eea; }
+        .stat-label { color: #666; margin-top: 5px; }
+        .chart-container { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="sidebar">
+            <h2>📊 لوحة التحكم</h2>
+            <ul class="sidebar-menu">
+                <li>🏠 الرئيسية</li>
+                <li>📈 التقارير</li>
+                <li>👥 المستخدمين</li>
+                <li>⚙️ الإعدادات</li>
+                <li>🔓 تسجيل الخروج</li>
+            </ul>
+        </div>
+        
+        <div class="main-content">
+            <h1 style="margin-bottom: 30px; color: #667eea;">مرحباً بك في لوحة التحكم!</h1>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-value">1,245</div>
+                    <div class="stat-label">إجمالي المستخدمين</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">💰</div>
+                    <div class="stat-value">$45,678</div>
+                    <div class="stat-label">الإيرادات</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">📦</div>
+                    <div class="stat-value">856</div>
+                    <div class="stat-label">الطلبات</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">⭐</div>
+                    <div class="stat-value">4.8</div>
+                    <div class="stat-label">التقييم</div>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <h2 style="margin-bottom: 20px; color: #667eea;">إحصائيات المبيعات</h2>
+                <div id="chart" style="height: 300px; display: flex; align-items: flex-end; justify-content: space-around;">
+                    <div style="width: 60px; background: linear-gradient(180deg, #667eea 0%, #764ba2 100%); border-radius: 10px 10px 0 0;" id="bar1"></div>
+                    <div style="width: 60px; background: linear-gradient(180deg, #667eea 0%, #764ba2 100%); border-radius: 10px 10px 0 0;" id="bar2"></div>
+                    <div style="width: 60px; background: linear-gradient(180deg, #667eea 0%, #764ba2 100%); border-radius: 10px 10px 0 0;" id="bar3"></div>
+                    <div style="width: 60px; background: linear-gradient(180deg, #667eea 0%, #764ba2 100%); border-radius: 10px 10px 0 0;" id="bar4"></div>
+                    <div style="width: 60px; background: linear-gradient(180deg, #667eea 0%, #764ba2 100%); border-radius: 10px 10px 0 0;" id="bar5"></div>
+                    <div style="width: 60px; background: linear-gradient(180deg, #667eea 0%, #764ba2 100%); border-radius: 10px 10px 0 0;" id="bar6"></div>
+                </div>
+                <div style="display: flex; justify-content: space-around; margin-top: 10px; color: #666;">
+                    <span>يناير</span><span>فبراير</span><span>مارس</span><span>أبريل</span><span>مايو</span><span>يونيو</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Animate chart bars
+        const heights = [180, 220, 190, 250, 200, 270];
+        heights.forEach((h, i) => {
+            document.getElementById(`bar${i+1}`).style.height = h + 'px';
+        });
+    </script>
+</body>
+</html>"""
+    },
+    "game": {
+        "name": "لعبة بسيطة",
+        "description": "لعبة Flappy Bird بسيطة",
+        "components": ["canvas", "game_loop", "controls"],
+        "code": """<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لعبة الطائر 🐦</title>
+    <style>
+        * { margin: 0; padding: 0; }
+        body { 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Segoe UI', Arial;
+        }
+        #gameCanvas { 
+            background: #87CEEB; 
+            border: 5px solid white; 
+            border-radius: 10px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .game-info {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="game-info">
+        النقاط: <span id="score">0</span>
+    </div>
+    <canvas id="gameCanvas" width="400" height="600"></canvas>
+    
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Game variables
+        let bird = { x: 50, y: 300, velocity: 0, gravity: 0.5, jump: -10 };
+        let pipes = [];
+        let score = 0;
+        let gameOver = false;
+        
+        // Pipe generation
+        function createPipe() {
+            const gap = 150;
+            const minHeight = 50;
+            const maxHeight = canvas.height - gap - minHeight;
+            const height = Math.random() * (maxHeight - minHeight) + minHeight;
+            
+            pipes.push({
+                x: canvas.width,
+                top: height,
+                bottom: height + gap,
+                width: 60,
+                passed: false
+            });
+        }
+        
+        // Draw bird
+        function drawBird() {
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.arc(bird.x, bird.y, 15, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#000';
+            ctx.fillRect(bird.x + 5, bird.y - 3, 3, 3); // eye
+        }
+        
+        // Draw pipes
+        function drawPipes() {
+            ctx.fillStyle = '#228B22';
+            pipes.forEach(pipe => {
+                // Top pipe
+                ctx.fillRect(pipe.x, 0, pipe.width, pipe.top);
+                // Bottom pipe
+                ctx.fillRect(pipe.x, pipe.bottom, pipe.width, canvas.height - pipe.bottom);
+            });
+        }
+        
+        // Update game
+        function update() {
+            if (gameOver) return;
+            
+            // Update bird
+            bird.velocity += bird.gravity;
+            bird.y += bird.velocity;
+            
+            // Generate pipes
+            if (pipes.length === 0 || pipes[pipes.length - 1].x < canvas.width - 200) {
+                createPipe();
+            }
+            
+            // Move pipes
+            pipes.forEach(pipe => {
+                pipe.x -= 2;
+                
+                // Score
+                if (!pipe.passed && pipe.x + pipe.width < bird.x) {
+                    pipe.passed = true;
+                    score++;
+                    document.getElementById('score').textContent = score;
+                }
+                
+                // Collision detection
+                if (
+                    bird.x + 15 > pipe.x && 
+                    bird.x - 15 < pipe.x + pipe.width &&
+                    (bird.y - 15 < pipe.top || bird.y + 15 > pipe.bottom)
+                ) {
+                    gameOver = true;
+                    alert('انتهت اللعبة! 🎮\\nنقاطك: ' + score);
+                    location.reload();
+                }
+            });
+            
+            // Remove off-screen pipes
+            pipes = pipes.filter(pipe => pipe.x > -pipe.width);
+            
+            // Ground/ceiling collision
+            if (bird.y + 15 > canvas.height || bird.y - 15 < 0) {
+                gameOver = true;
+                alert('انتهت اللعبة! 🎮\\nنقاطك: ' + score);
+                location.reload();
+            }
+        }
+        
+        // Draw everything
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawPipes();
+            drawBird();
+        }
+        
+        // Game loop
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Controls
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && !gameOver) {
+                bird.velocity = bird.jump;
+            }
+        });
+        
+        canvas.addEventListener('click', () => {
+            if (!gameOver) {
+                bird.velocity = bird.jump;
+            }
+        });
+        
+        // Start game
+        gameLoop();
+    </script>
+</body>
+</html>"""
+    }
+}
+
+@app.route('/create-smart-app', methods=['POST'])
+def create_smart_app():
+    """إنشاء تطبيق ذكي من template"""
+    try:
+        data = request.get_json()
+        template_name = data.get('template', 'landing_page')
+        customizations = data.get('customizations', {})
+        
+        if template_name not in APP_TEMPLATES:
+            return jsonify({
+                'error': f"القالب '{template_name}' غير موجود",
+                'available_templates': list(APP_TEMPLATES.keys())
+            }), 400
+        
+        template = APP_TEMPLATES[template_name]
+        code = template['code']
+        
+        # Apply customizations
+        for key, value in customizations.items():
+            code = code.replace(f"{{{key}}}", str(value))
+        
+        # Default values
+        default_replacements = {
+            '{title}': customizations.get('title', 'تطبيق ذكي'),
+            '{company_name}': customizations.get('company_name', 'شركتي'),
+            '{hero_title}': customizations.get('hero_title', 'مرحباً بك!'),
+            '{hero_description}': customizations.get('hero_description', 'نقدم أفضل الحلول'),
+            '{store_name}': customizations.get('store_name', 'متجري')
+        }
+        
+        for key, value in default_replacements.items():
+            code = code.replace(key, value)
+        
+        stats['generated_codes'] += 1
+        
+        return jsonify({
+            'success': True,
+            'template_name': template['name'],
+            'description': template['description'],
+            'components': template['components'],
+            'code': code,
+            'download_url': '/download-app',
+            'preview_url': '/preview-app',
+            'message': f'✅ تم إنشاء {template["name"]} بنجاح!'
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/templates', methods=['GET'])
+def get_templates():
+    """الحصول على قائمة القوالب المتاحة"""
+    templates_list = {
+        name: {
+            'name': template['name'],
+            'description': template['description'],
+            'components': template['components']
+        }
+        for name, template in APP_TEMPLATES.items()
+    }
+    
+    return jsonify({
+        'templates': templates_list,
+        'total': len(templates_list),
+        'categories': {
+            'websites': ['landing_page', 'dashboard'],
+            'ecommerce': ['ecommerce'],
+            'games': ['game']
+        }
+    })
+
+# ═══════════════════════════════════════════════════════════════════
+# 🔌 API INTEGRATION HUB - ربط APIs خارجية
+# ═══════════════════════════════════════════════════════════════════
+
+@app.route('/integrate-api', methods=['POST'])
+def integrate_api():
+    """دمج API خارجي"""
+    try:
+        data = request.get_json()
+        api_type = data.get('type')  # 'payment', 'auth', 'database', 'email'
+        api_config = data.get('config', {})
+        
+        integration_code = {
+            'payment': """
+// Payment Integration (Stripe/PayPal)
+async function processPayment(amount, currency = 'USD') {
+    const response = await fetch('/api/payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount, currency })
+    });
+    const result = await response.json();
+    if (result.success) {
+        alert('تم الدفع بنجاح! 💳');
+    }
+    return result;
+}
+""",
+            'auth': """
+// Authentication Integration (JWT/OAuth)
+class AuthSystem {
+    async login(email, password) {
+        const response = await fetch('/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+        const { token } = await response.json();
+        localStorage.setItem('authToken', token);
+        return token;
+    }
+    
+    async register(email, password, name) {
+        const response = await fetch('/api/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password, name })
+        });
+        return await response.json();
+    }
+    
+    logout() {
+        localStorage.removeItem('authToken');
+        window.location.href = '/login';
+    }
+    
+    isAuthenticated() {
+        return !!localStorage.getItem('authToken');
+    }
+}
+
+const auth = new AuthSystem();
+""",
+            'database': """
+// Database Integration (MongoDB/PostgreSQL)
+class DatabaseManager {
+    constructor(baseURL) {
+        this.baseURL = baseURL;
+    }
+    
+    async create(collection, data) {
+        const response = await fetch(`${this.baseURL}/${collection}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        return await response.json();
+    }
+    
+    async read(collection, id = null) {
+        const url = id ? `${this.baseURL}/${collection}/${id}` : `${this.baseURL}/${collection}`;
+        const response = await fetch(url);
+        return await response.json();
+    }
+    
+    async update(collection, id, data) {
+        const response = await fetch(`${this.baseURL}/${collection}/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        return await response.json();
+    }
+    
+    async delete(collection, id) {
+        const response = await fetch(`${this.baseURL}/${collection}/${id}`, {
+            method: 'DELETE'
+        });
+        return await response.json();
+    }
+}
+
+const db = new DatabaseManager('/api/db');
+""",
+            'email': """
+// Email Integration (SendGrid/Mailgun)
+async function sendEmail(to, subject, body) {
+    const response = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to, subject, body })
+    });
+    const result = await response.json();
+    if (result.success) {
+        alert('تم إرسال البريد بنجاح! 📧');
+    }
+    return result;
+}
+"""
+        }
+        
+        if api_type not in integration_code:
+            return jsonify({
+                'error': f"نوع API '{api_type}' غير مدعوم",
+                'supported_types': list(integration_code.keys())
+            }), 400
+        
+        return jsonify({
+            'success': True,
+            'api_type': api_type,
+            'code': integration_code[api_type],
+            'config': api_config,
+            'message': f'✅ تم إنشاء كود ربط {api_type} بنجاح!',
+            'documentation': f'/docs/api/{api_type}'
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ═══════════════════════════════════════════════════════════════════
+# 🎮 SIMPLE GAME ENGINE - محرك ألعاب بسيط
+# ═══════════════════════════════════════════════════════════════════
+
+@app.route('/create-game', methods=['POST'])
+def create_game():
+    """إنشاء لعبة بسيطة"""
+    try:
+        data = request.get_json()
+        game_type = data.get('type', 'platformer')  # 'platformer', 'shooter', 'puzzle'
+        game_name = data.get('name', 'لعبة جديدة')
+        
+        game_templates = {
+            'platformer': """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{game_name}</title>
+    <style>
+        body { margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; background: #000; }
+        canvas { border: 2px solid #fff; }
+    </style>
+</head>
+<body>
+    <canvas id="game" width="800" height="600"></canvas>
+    <script>
+        const canvas = document.getElementById('game');
+        const ctx = canvas.getContext('2d');
+        
+        const player = { x: 50, y: 500, width: 30, height: 30, vx: 0, vy: 0, jumping: false };
+        const gravity = 0.5;
+        const jumpPower = -12;
+        const speed = 5;
+        
+        const platforms = [
+            { x: 0, y: 550, width: 800, height: 50 },
+            { x: 200, y: 450, width: 150, height: 20 },
+            { x: 450, y: 350, width: 150, height: 20 }
+        ];
+        
+        function update() {
+            player.vy += gravity;
+            player.y += player.vy;
+            player.x += player.vx;
+            
+            platforms.forEach(platform => {
+                if (player.x < platform.x + platform.width &&
+                    player.x + player.width > platform.x &&
+                    player.y + player.height > platform.y &&
+                    player.y + player.height < platform.y + platform.height) {
+                    player.y = platform.y - player.height;
+                    player.vy = 0;
+                    player.jumping = false;
+                }
+            });
+            
+            if (player.x < 0) player.x = 0;
+            if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+        }
+        
+        function draw() {
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = '#8B4513';
+            platforms.forEach(p => ctx.fillRect(p.x, p.y, p.width, p.height));
+            
+            ctx.fillStyle = '#FF0000';
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+        }
+        
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') player.vx = speed;
+            if (e.key === 'ArrowLeft') player.vx = -speed;
+            if (e.key === ' ' && !player.jumping) {
+                player.vy = jumpPower;
+                player.jumping = true;
+            }
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') player.vx = 0;
+        });
+        
+        gameLoop();
+    </script>
+</body>
+</html>
+""",
+            'shooter': """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{game_name} - Space Shooter</title>
+    <style>
+        body { margin: 0; background: #000; overflow: hidden; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <canvas id="game"></canvas>
+    <script>
+        const canvas = document.getElementById('game');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        const player = { x: canvas.width / 2, y: canvas.height - 100, width: 30, height: 30, speed: 7 };
+        let bullets = [];
+        let enemies = [];
+        let score = 0;
+        let keys = {};
+        
+        function spawnEnemy() {
+            enemies.push({
+                x: Math.random() * (canvas.width - 30),
+                y: -30,
+                width: 30,
+                height: 30,
+                speed: 2 + Math.random() * 2
+            });
+        }
+        
+        function update() {
+            if (keys['ArrowLeft'] && player.x > 0) player.x -= player.speed;
+            if (keys['ArrowRight'] && player.x < canvas.width - player.width) player.x += player.speed;
+            
+            bullets = bullets.filter(b => b.y > 0);
+            bullets.forEach(b => b.y -= 10);
+            
+            enemies = enemies.filter(e => e.y < canvas.height);
+            enemies.forEach(e => {
+                e.y += e.speed;
+                bullets.forEach((b, bi) => {
+                    if (b.x < e.x + e.width && b.x + 5 > e.x &&
+                        b.y < e.y + e.height && b.y + 10 > e.y) {
+                        bullets.splice(bi, 1);
+                        enemies.splice(enemies.indexOf(e), 1);
+                        score += 10;
+                    }
+                });
+            });
+        }
+        
+        function draw() {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = '#0F0';
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+            
+            ctx.fillStyle = '#FF0';
+            bullets.forEach(b => ctx.fillRect(b.x, b.y, 5, 10));
+            
+            ctx.fillStyle = '#F00';
+            enemies.forEach(e => ctx.fillRect(e.x, e.y, e.width, e.height));
+            
+            ctx.fillStyle = '#FFF';
+            ctx.font = '24px Arial';
+            ctx.fillText('Score: ' + score, 10, 30);
+        }
+        
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        document.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+            if (e.key === ' ') {
+                bullets.push({ x: player.x + player.width / 2, y: player.y });
+            }
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+        
+        setInterval(spawnEnemy, 1000);
+        gameLoop();
+    </script>
+</body>
+</html>
+"""
+        }
+        
+        game_code = game_templates.get(game_type, game_templates['platformer'])
+        game_code = game_code.replace('{game_name}', game_name)
+        
+        stats['generated_codes'] += 1
+        
+        return jsonify({
+            'success': True,
+            'game_type': game_type,
+            'game_name': game_name,
+            'code': game_code,
+            'controls': {
+                'platformer': 'Arrow Keys to move, Space to jump',
+                'shooter': 'Arrow Keys to move, Space to shoot'
+            }.get(game_type, 'Arrow Keys + Space'),
+            'message': f'✅ تم إنشاء لعبة {game_name} بنجاح! 🎮'
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     print("💎 Starting Zizo Ultimate...")
     print("⚡ THE ULTIMATE AI IS NOW LIVE!")
     print("💬 Chat | 🎨 Images | 🎬 Videos | 💻 Code | 🌐 Web | 📱 Apps | 🎵 Audio")
+    print("🚀 NEW: Smart App Builder | 🔌 API Hub | 🎮 Game Engine | 🛍️ E-commerce")
+    print("📊 Dashboard Builder | 🔒 Auth System | 💾 Database Manager")
     app.run(host='0.0.0.0', port=5000, debug=False)
