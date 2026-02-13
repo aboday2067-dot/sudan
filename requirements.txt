@@ -1,0 +1,9 @@
+flask>=3.0.0
+gunicorn>=21.0.0
+openai>=1.52.0
+litellm==1.55.0
+anthropic
+google-generativeai
+pydantic
+tenacity
+httpx
