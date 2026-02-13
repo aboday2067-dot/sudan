@@ -1598,17 +1598,26 @@ def generate_video_real(prompt):
             }
         )
         
-        video_url = output
+        # Convert FileOutput to URL string
+        if isinstance(output, list) and len(output) > 0:
+            video_url = str(output[0])
+        else:
+            video_url = str(output)
+        
+        # Debug: print URL type
+        print(f"DEBUG: video_url type = {type(video_url)}, value = {video_url}")
         
         stats['generated_videos'] += 1
         
-        return jsonify({
+        result = {
             'response': f'🎬 **تم توليد الفيديو بنجاح!**\n\n**الوصف:** {prompt}\n**المدة:** ~3 ثوان\n**النموذج:** Zeroscope V2 XL',
             'type': 'video',
             'video_url': video_url,
             'status': 'success',
             'history': []
-        })
+        }
+        print(f"DEBUG: Returning result: {result}")
+        return jsonify(result)
     except replicate.exceptions.ReplicateError as e:
         error_msg = str(e)
         if '401' in error_msg or 'Unauthenticated' in error_msg:
@@ -2539,8 +2548,10 @@ def manage_api_keys():
         
         # Check other services
         for service in ['fal_ai', 'stability', 'elevenlabs', 'replicate']:
-            if service in config and 'api_key' in config.get(service, {}):
-                key = config[service]['api_key']
+            # Replicate uses 'api_token' instead of 'api_key'
+            key_name = 'api_token' if service == 'replicate' else 'api_key'
+            if service in config and key_name in config.get(service, {}):
+                key = config[service][key_name]
                 keys_info[service] = {
                     'present': True,
                     'key': key[:10] + '...' + key[-5:] if key else None,
